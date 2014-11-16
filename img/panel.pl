@@ -9,7 +9,7 @@ unlink("panel.png");
 
 
 # import the line image 
-my $line = "line0.gif";
+my $line = "line0.png";
 
 # first, make a canvas to work with
 system("convert -size 500x500 canvas:white panel.png");
@@ -18,17 +18,17 @@ system("convert -size 500x500 canvas:white panel.png");
 
 # bearing in mind that line0.gif is 14x3000, pick a random 300 pixels of it.
 # should probably just make this a subroutine eventually
-$seed = int(rand(2700));
-system("convert $line -crop 14x300+0+$seed -rotate 90 lineT.gif");
+$seed = int(rand(700));
+system("convert $line -crop 5x300+0+$seed -rotate 90 lineT.png");
 
-$seed = int(rand(2700));
-system("convert $line -crop 14x300+0+$seed -rotate 90 lineB.gif");
+$seed = int(rand(700));
+system("convert $line -crop 5x300+0+$seed -rotate 90 -alpha set lineB.png");
 
-$seed = int(rand(2700));
-system("convert $line -crop 14x200+0+$seed lineL.gif");
+$seed = int(rand(700));
+system("convert $line -crop 5x200+0+$seed -alpha set  lineL.png");
 
-$seed = int(rand(2700));
-system("convert $line -crop 14x200+0+$seed lineR.gif");
+$seed = int(rand(700));
+system("convert $line -crop 5x200+0+$seed -alpha set  lineR.png");
 
 # this seems to work
-system("convert panel.png -page +30+30 lineT.gif -page +30+30 lineL.gif -page +325+30 lineR.gif -page +30+225 lineB.gif -layers flatten paneled.png");
+system("convert panel.png -page +30+30 lineT.png -page +30+30 lineL.png -page +325+30 lineR.png -page +30+225 lineB.png -layers flatten paneled.png");
