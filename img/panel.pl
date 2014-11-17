@@ -14,7 +14,7 @@ my $line = "line0.png";
 # first, make a canvas to work with
 system("convert -size 500x500 canvas:white panel.png");
 
-# let's make a panel that's 300 x 200
+# let's make a panel that's 300 x 20
 
 # bearing in mind that line0.gif is 14x3000, pick a random 300 pixels of it.
 # should probably just make this a subroutine eventually
@@ -32,3 +32,6 @@ system("convert $line -crop 5x200+0+$seed -alpha set  lineR.png");
 
 # this seems to work
 system("convert panel.png -page +30+30 lineT.png -page +30+30 lineL.png -page +325+30 lineR.png -page +30+225 lineB.png -layers flatten paneled.png");
+
+
+grep "10" | around 
