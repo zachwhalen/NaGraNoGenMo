@@ -54,8 +54,17 @@ while (scalar(@kept) < $srcs){
 }
 
 foreach (@kept){
-	print "$_ \n";
+	# download into tmp/mov folder
+
+	system("youtube-dl https://www.youtube.com/watch?v=$_ -o \"tmp/mov/\%\(id\)s.\%\(ext\)s\"");
+	
+	system("avconv -i tmp/mov/$_.mp4 -r 1 tmp/frames/$_-%05d.png");
+
+	unlink("tmp/mov/$_.mp4");
+
 }
+
+
 
 sub query {
 	my $pn = @_[0];
