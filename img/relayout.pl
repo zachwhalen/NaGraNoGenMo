@@ -3,16 +3,33 @@
 # I need to make this a more generalized set of subroutines.
 
 
-system("convert -size 2000x2000  xc:white big.png");
+#system("convert -size 2000x2000  xc:white big.png");
 
 
 #drawRect("big.png", 250, 500, 20, 80);
 
 
-drawPanel("big.png", "tmp/frames/img-00004.png", "Some text is here.", 500, 500, 20, 80);
+drawPanel("big.png", "tmp/frames/img-00004.png", "Some text is here. And if I add enough text it should automatically decide if it can fit of ir it nees to wrap it outside of the panel.", 900, 1500, 20, 80);
 
 #drawImage("big.png", "smal.png", 400, 400, 80, 20);
 
+
+$txt = makeText();
+
+print $txt . "\n";
+
+sub makeText () {
+
+	$lorem = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis faucibus tortor libero, quis aliquet ex pulvinar vitae. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Donec id pharetra dolor. In condimentum ullamcorper ipsum, sed convallis ipsum. Sed maximus enim vel justo porta mattis. Vestibulum id interdum lorem, et tincidunt neque. Donec laoreet lacus metus, vel condimentum purus cursus eu. Nunc malesuada sem sit amet massa consequat, sit amet dapibus dui consectetur. Nulla et ullamcorper nisl, vitae volutpat leo. Morbi sed sapien non ipsum facilisis iaculis porttitor pharetra nunc. Mauris fringilla ligula id tellus feugiat, eu aliquet lorem porttitor. In auctor erat a nisi viverra, sed volutpat libero blandit. Nullam consequat, enim at tristique semper, ligula quam viverra elit, quis consequat massa mi luctus mauris. Phasellus pretium massa a laoreet sodales. Nunc id nibh rhoncus, vulputate ipsum a, ullamcorper lacus.';
+
+	@ipsum = split(/\. /, $lorem);
+
+
+	$text = $ipsum[int(rand($#ipsum))] . ". ";
+
+
+	return $text;
+}
 
 
 #system("eog big.png");
@@ -36,7 +53,7 @@ sub drawPanel () {
 
 
 	print " try and write my text to an initial image file\n";
-	$txtImg = `convert -background '#fafafa' -fill \"#555555\" -font SundayComicsBB -pointsize 16 -size $maxWidthTxt caption:'$text' -bordercolor '#fafafa' -border 12x12 text.png`;
+	$txtImg = `convert -background '#fafafa' -fill \"#555555\" -font SundayComicsBB -pointsize 48 -size $maxWidthTxt caption:'$text' -bordercolor '#fafafa' -border 12x12 text.png`;
 
 	
 	@details = split(" ", `identify text.png`);
@@ -61,7 +78,7 @@ sub drawPanel () {
 		# exterior text
 		print "make exterior text\n";
 		# make a new text image
-		$txtImg = `convert -background '#ffffff' -fill \"#555555\" -font SundayComicsBB -pointsize 16 -size $width caption:'$text' -bordercolor '#ffffff' -border 5x5 text.png`;
+		$txtImg = `convert -background '#ffffff' -fill \"#555555\" -font SundayComicsBB -pointsize 48 -size $width caption:'$text' -bordercolor '#ffffff' -border 5x5 text.png`;
 
 		# stick it on the canvas
 		$placeText = `convert $canvas -page +$xoffset+$yoffset text.png -layers flatten $canvas`;
