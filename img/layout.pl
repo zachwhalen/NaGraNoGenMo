@@ -109,6 +109,8 @@ for ($pn = 1; $pn <= 2; $pn++){
 	}
 
 	#system ("convert layout.png -bordercolor white -border 100x100 layout.png");
+	# page number
+	system("convert layout.png -fill '#222222' -font 'RedStateBlueStateBB' -pointsize 44 -gravity south -annotate 0 '$pn\\n' layout.png");
 
 	system ("mv layout.png pages/page-$pn.png");
 
@@ -224,6 +226,8 @@ sub drawImage {
 		my $th = $targetHeight * 2;
 		#scale it up 
 		system("convert $fill -resize 'x$th' -resize '$tw' -resize 50% -gravity center -crop $tg +repage -colorspace gray -sketch 0x20+120 fill.png");
+				system("convert $fill -resize 'x$th' -resize '$tw' -resize 50% -gravity center -crop $tg +repage -paint 5 fill.png");
+
 	}
 
 
