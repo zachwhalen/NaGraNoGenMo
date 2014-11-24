@@ -1,1 +1,4 @@
-img/tmp/*
+img/tmp/pages/*.png
+img/tmp/mov/*.mp4
+img/tmp/mov/*.part
+img/tmp/frames/*.png
