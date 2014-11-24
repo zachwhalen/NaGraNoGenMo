@@ -288,7 +288,7 @@ sub drawPanel  {
 		$txtImg = `convert -background '#ffffff' -fill \"#555555\" -font DigitalStrip-2.0-BB-Regular -pointsize 22 -size $width caption:'$text' -bordercolor '#ffffff' -border 5x5 img/tmp/text.png`;
 
 		# stick it on the canvas
-		$placeText = `convert $canvas -page +$xoffset+$yoffset text.png -layers flatten $canvas`;
+		$placeText = `convert $canvas -page +$xoffset+$yoffset img/tmp/text.png -layers flatten $canvas`;
 		@details = split(" ", `identify img/tmp/text.png`);
 		($txtWidth, $txtHeight) = split("x", $details[2]);
 
