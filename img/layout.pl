@@ -3,7 +3,9 @@
 # something for making page layouts in IM
 
 use JSON::Parse 'parse_json';
-
+use Date::Parse;
+use List::MoreUtils qw(uniq);
+use List::Util qw(shuffle);
 
 
 # I can envision several different layouts, but for now, let's just assume that it's three rows of panels, where each row has 1, 2, or 3 panels.
@@ -13,7 +15,7 @@ use JSON::Parse 'parse_json';
 # a two-paneled row gets two, each at 475x516
 # a three-paneled row gets three, each at 308x516
 
-for ($pn = 1; $pn <= 2; $pn++){
+for ($pn = 1; $pn <= 3; $pn++){
 
 	$pn = int(rand(250)) + 1;
 
@@ -110,9 +112,9 @@ for ($pn = 1; $pn <= 2; $pn++){
 
 	#system ("convert layout.png -bordercolor white -border 100x100 layout.png");
 	# page number
-	system("convert layout.png -fill '#222222' -font 'RedStateBlueStateBB' -pointsize 44 -gravity south -annotate 0 '$pn\\n' layout.png");
+	system("convert layout.png -fill '#222222' -font ManlyMen-BB-Regular -pointsize 44 -gravity south -annotate 0 '$pn\\n' layout.png");
 
-	system ("mv layout.png pages/page-$pn.png");
+	system ("mv layout.png tmp/pages/page-$pn.png");
 
 	system ("rm tmp/frames/*.png");
 
@@ -147,7 +149,7 @@ sub query {
 		'n.mts'
 	);
 
-	# I should be using printf, but whatever. Don't judge me.
+	# I should be using sprintf, but whatever. Don't judge me.
 
 	$template = $templates[int(rand($#templates))];
 	$template =~ s/n\./$pn\./;
@@ -217,16 +219,17 @@ sub drawImage {
 	# is it big enough?
 	if ($imgWidth > $width & $imgHeight > $height){
 
-		# pick a randomized offset for cropping
-		system("convert $fill -crop $tg -colorspace gray -sketch 0x20+120 fill.png");
+		# TODO pick a randomized offset for cropping
+		#system("convert $fill -crop $tg -colorspace gray -sketch 0x20+120 fill.png");
+		system("convert $fill -crop $tg -colorspace gray -paint 5 fill.png");
 
 	}else{
 		
 		my $tw = $targetWidth * 2 . 'x<';
 		my $th = $targetHeight * 2;
 		#scale it up 
-		system("convert $fill -resize 'x$th' -resize '$tw' -resize 50% -gravity center -crop $tg +repage -colorspace gray -sketch 0x20+120 fill.png");
-				system("convert $fill -resize 'x$th' -resize '$tw' -resize 50% -gravity center -crop $tg +repage -paint 5 fill.png");
+		#system("convert $fill -resize 'x$th' -resize '$tw' -resize 50% -gravity center -crop $tg +repage -colorspace gray -sketch 0x20+120 fill.png");
+		system("convert $fill -resize 'x$th' -resize '$tw' -resize 50% -gravity center -crop $tg +repage -colorspace gray -paint 5 fill.png");
 
 	}
 
@@ -257,7 +260,7 @@ sub drawPanel  {
 
 
 	print " try and write my text to an initial image file\n";
-	$txtImg = `convert -background '#fafafa' -fill \"#555555\" -font SundayComicsBB -pointsize 18 -size $maxWidthTxt caption:'$text' -bordercolor '#fafafa' -border 12x12 text.png`;
+	$txtImg = `convert -background '#ffffff' -fill \"#555555\" -font DigitalStrip-2.0-BB-Regular -pointsize 20 -size $maxWidthTxt caption:'$text' -bordercolor '#ffffff' -border 12x12 text.png`;
 
 	
 	@details = split(" ", `identify text.png`);
@@ -267,7 +270,7 @@ sub drawPanel  {
 
 	if ($txtHeight < ($maxIntHeight * .3)){
 		# interior text
-		print "make interior text (later)\n";
+		print "make interior text\n";
 
 		# make a panel first
 		drawRect($canvas, $img, $width, $height, $xoffset, $yoffset);
@@ -282,7 +285,7 @@ sub drawPanel  {
 		# exterior text
 		print "make exterior text\n";
 		# make a new text image
-		$txtImg = `convert -background '#ffffff' -fill \"#555555\" -font SundayComicsBB -pointsize 18 -size $width caption:'$text' -bordercolor '#ffffff' -border 5x5 text.png`;
+		$txtImg = `convert -background '#ffffff' -fill \"#555555\" -font DigitalStrip-2.0-BB-Regular -pointsize 22 -size $width caption:'$text' -bordercolor '#ffffff' -border 5x5 text.png`;
 
 		# stick it on the canvas
 		$placeText = `convert $canvas -page +$xoffset+$yoffset text.png -layers flatten $canvas`;
@@ -298,12 +301,51 @@ sub drawPanel  {
 
 sub makeText {
 
-	$lorem = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis faucibus tortor libero, quis aliquet ex pulvinar vitae. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Donec id pharetra dolor. In condimentum ullamcorper ipsum, sed convallis ipsum. Sed maximus enim vel justo porta mattis. Vestibulum id interdum lorem, et tincidunt neque. Donec laoreet lacus metus, vel condimentum purus cursus eu. Nunc malesuada sem sit amet massa consequat, sit amet dapibus dui consectetur. Nulla et ullamcorper nisl, vitae volutpat leo. Morbi sed sapien non ipsum facilisis iaculis porttitor pharetra nunc. Mauris fringilla ligula id tellus feugiat, eu aliquet lorem porttitor. In auctor erat a nisi viverra, sed volutpat libero blandit. Nullam consequat, enim at tristique semper, ligula quam viverra elit, quis consequat massa mi luctus mauris. Phasellus pretium massa a laoreet sodales. Nunc id nibh rhoncus, vulputate ipsum a, ullamcorper lacus.';
+	#$length = @_[0] + 1;
+ 
+	$length = @_[0] ? @_[0] > 0 : int(rand(2)) + 1;
 
-	@ipsum = split(/\. /, $lorem);
+
+	my @legs = getLegs();
 
 
-	$text = $ipsum[int(rand($#ipsum))] . ". ";
+	my @templates = (
+
+		"%s, and %s. ",
+		"%s. ",
+		"%s, but %s. ",
+		"%s, and %s. ",
+		"%s. ",
+		"%s, but %s. ",
+		"%s, and %s. ",
+		"%s. ",
+		"%s, but %s. ",
+		"%s, and %s. ",
+		"%s. ",
+		"%s, but %s. ",
+		"%s, %s, but %s. ",
+		"Eventually, %s. ",
+		"But after %s, %s. ".
+		"%s; %s. ",
+		"%s, which made us realize %s. ",
+		"Finally, %s. ",
+		"Even though %s, %s. ",
+		"%s -- $s. "
+	);
+
+	$text = '';
+
+	for ($l = 0; $l < $length; $l++){
+
+		$template = $templates[int(rand($#templates))];
+		$leg = $legs[int(rand($#legs))];
+
+		$text .= ucfirst ( sprintf($template, shuffle @legs));
+
+		$text =~ s/\s(\.|\,|\;|\:)/$1/ig;
+		
+	}
+
 
 
 	return $text;
@@ -315,4 +357,71 @@ sub getFrame {
 	$frame = $frames[int(rand($#frames))];
 
 	return $frame;
+}
+
+sub getLegs {
+
+	# later, get this as a parameter
+	$string = str2time("2014-05-20");
+
+	my @tweets;
+	my @legs;
+
+	%params = (
+		'q' => '%23tbt+when',
+		'apikey' => '09C43A9B270A470B8EB8F2946A9369F3', # I don't know how long this one will work, but should be able to switch out later if need
+		'type' => 'tweet',
+		'offset' => '0',
+		'perpage' => '100',
+		'sort' => 'date',
+		'offset' => int(rand(50)) * 10,
+		'maxtime' => $string
+
+	);
+
+	$url = 'http://otter.topsy.com/search.js?';
+
+	$nurl = 'http://otter.topsy.com/search.js?q=%23tbt+"remember+when"\&type=tweet\&offset=0\&perpage=10\&maxtime=1391288415\&apikey=09C43A9B270A470B8EB8F2946A9369F3';
+
+	foreach (keys %params){
+		$url .= $_ . "=" . $params{$_} . '\&';
+	}
+
+	$result = `curl $url`;
+	$data = parse_json($result);
+
+	#print $result;
+	
+	foreach (@{$data->{response}->{list}}){
+		$twt = $_->{title};
+
+		
+		# Some filters:
+
+		$twt =~ s/#.+?(\s|$)/it /ig; # replace hashtags with "it"
+		$twt =~ s/http.+?(\s|$)//ig; # remove links
+		$twt =~ s/\@.+?(\s|$)/you /ig; # replace mentions with "you"
+
+		push(@tweets, $twt);
+		
+	}
+
+	print "Tweets: " . scalar(@tweets) . "\n";
+
+	if (scalar(@tweets) == 0){
+		print "Result: $result";
+	}
+
+	foreach (@tweets){
+		if (/when (.+?)[\?\!\.\;\,\:\&]/ig){
+
+			push (@legs, $1);
+				
+		}
+	}
+
+	@goodlegs = uniq @legs;
+
+	print "Legs: " . scalar(@goodlegs) . "\n";
+	return @goodlegs;
 }

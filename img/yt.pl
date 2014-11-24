@@ -56,7 +56,7 @@ while (scalar(@kept) < $srcs){
 foreach (@kept){
 	# download into tmp/mov folder
 
-	system("youtube-dl https://www.youtube.com/watch?v=$_ -o \"tmp/mov/\%\(id\)s.\%\(ext\)s\"");
+	system("youtube-dl https://www.youtube.com/watch?v=$_ -o \"tmp/mov/\%\(id\)s.\%\(upload_date\)s.\%\(ext\)s\"");
 	
 	system("avconv -i tmp/mov/$_.mp4 -r 1 tmp/frames/$_-%05d.png");
 

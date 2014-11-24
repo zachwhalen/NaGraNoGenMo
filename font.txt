@@ -6700,6 +6700,24 @@ Path: System Fonts
     stretch: Normal
     weight: 400
     glyphs: /home/zach/.fonts/kaiu.ttf
+  Font: DigitalStrip-2.0-BB-Bold
+    family: DigitalStrip 2.0 BB
+    style: Normal
+    stretch: Normal
+    weight: 700
+    glyphs: /home/zach/.local/share/fonts/DigitalStrip2BB_bold.ttf
+  Font: DigitalStrip-2.0-BB-Italic
+    family: DigitalStrip 2.0 BB
+    style: Italic
+    stretch: Normal
+    weight: 400
+    glyphs: /home/zach/.local/share/fonts/DigitalStrip2BB_ital.ttf
+  Font: DigitalStrip-2.0-BB-Regular
+    family: DigitalStrip 2.0 BB
+    style: Normal
+    stretch: Normal
+    weight: 400
+    glyphs: /home/zach/.local/share/fonts/DigitalStrip2BB_reg.ttf
   Font: DilleniaUPC-Bold
     family: DilleniaUPC
     style: Normal
@@ -8350,6 +8368,24 @@ Path: System Fonts
     stretch: Normal
     weight: 400
     glyphs: /home/zach/.fonts/mangal.ttf
+  Font: ManlyMen-BB-Bold
+    family: ManlyMen BB
+    style: Normal
+    stretch: Normal
+    weight: 700
+    glyphs: /home/zach/.local/share/fonts/ManlyMenBB_bold.ttf
+  Font: ManlyMen-BB-Italic
+    family: ManlyMen BB
+    style: Italic
+    stretch: Normal
+    weight: 400
+    glyphs: /home/zach/.local/share/fonts/ManlyMenBB_ital.ttf
+  Font: ManlyMen-BB-Regular
+    family: ManlyMen BB
+    style: Normal
+    stretch: Normal
+    weight: 400
+    glyphs: /home/zach/.local/share/fonts/ManlyMenBB.ttf
   Font: Marlboro-Regular
     family: Marlboro
     style: Normal
