@@ -113,7 +113,7 @@ foreach (sort {$a <=> $b} keys %chapters){
 
 @chaptitles = themeChapters(@chaps);
 
-for (my $c = 1; $c <= $#chaptitle; $c++){
+for (my $c = 1; $c <= $#chaptitles; $c++){
 	$chapterInfo{$c}->{title} = $chaptitles[$c];
 }
 
