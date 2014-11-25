@@ -15,9 +15,9 @@ use List::Util qw(shuffle);
 # a two-paneled row gets two, each at 475x516
 # a three-paneled row gets three, each at 308x516
 
-for ($pn = 1; $pn <= 3; $pn++){
+for ($pn = 50; $pn <= 75; $pn++){
 
-	$pn = int(rand(250)) + 1;
+	#$pn = int(rand(250)) + 1;
 
 
 
@@ -120,8 +120,8 @@ for ($pn = 1; $pn <= 3; $pn++){
 
 }
 
-#system("mogrify -format pdf pages/*.png");
-#system("pdftk pages/page-*.pdf cat output /home/zach/Dropbox/chapter2.pdf");
+system("mogrify -format pdf img/tmp/pages/*.png");
+system("pdftk img/tmp/pages/page-*.pdf cat output /home/zach/Dropbox/chapter3.pdf");
 
 sub query {
 	my $pn = @_[0];
@@ -221,7 +221,7 @@ sub drawImage {
 
 		# TODO pick a randomized offset for cropping
 		#system("convert $fill -crop $tg -colorspace gray -sketch 0x20+120 fill.png");
-		system("convert $fill -crop $tg -colorspace gray -paint 5 img/tmp/fill.png");
+		system("convert $fill -crop $tg -paint 5 img/tmp/fill.png");
 
 	}else{
 		
@@ -229,7 +229,7 @@ sub drawImage {
 		my $th = $targetHeight * 2;
 		#scale it up 
 		#system("convert $fill -resize 'x$th' -resize '$tw' -resize 50% -gravity center -crop $tg +repage -colorspace gray -sketch 0x20+120 fill.png");
-		system("convert $fill -resize 'x$th' -resize '$tw' -resize 50% -gravity center -crop $tg +repage -colorspace gray -paint 5 img/tmp/fill.png");
+		system("convert $fill -resize 'x$th' -resize '$tw' -resize 50% -gravity center -crop $tg +repage -paint 5 img/tmp/fill.png");
 
 	}
 
@@ -258,7 +258,7 @@ sub drawPanel  {
 	$maxWidthTxt = (($maxIntWidth - 30) * .7) . 'x';
 
 
-
+	#unlink("img/tmp/text.png");
 	print " try and write my text to an initial image file\n";
 	$txtImg = `convert -background '#ffffff' -fill \"#555555\" -font DigitalStrip-2.0-BB-Regular -pointsize 20 -size $maxWidthTxt caption:'$text' -bordercolor '#ffffff' -border 12x12 img/tmp/text.png`;
 
@@ -279,8 +279,8 @@ sub drawPanel  {
 
 		$x = int(rand($maxIntWidth - $txtWidth - 10)) + $xoffset;
 		$y = int(rand($maxIntHeight - $txtHeight - 10)) + $yoffset;
-		system("convert $canvas -page +$x+$y img/tmp/text.png -layers flatten $canvas");
-
+		$txtImg = `convert $canvas -page +$x+$y img/tmp/text.png -layers flatten $canvas`;
+		unlink("img/tmp/text.png");
 	}else{
 		# exterior text
 		print "make exterior text\n";
@@ -291,7 +291,7 @@ sub drawPanel  {
 		$placeText = `convert $canvas -page +$xoffset+$yoffset img/tmp/text.png -layers flatten $canvas`;
 		@details = split(" ", `identify img/tmp/text.png`);
 		($txtWidth, $txtHeight) = split("x", $details[2]);
-
+		unlink("img/tmp/text.png");
 		# make a textless panel
 		drawRect($canvas, $img, $width, $height - $txtHeight, $xoffset, $yoffset + $txtHeight - 8);
 	}
@@ -346,7 +346,8 @@ sub makeText {
 		
 	}
 
-
+	# some problems with quote marks I think
+	$text =~ s/\'|\"|\`//ig;
 
 	return $text;
 }
