@@ -15,7 +15,7 @@ use List::Util qw(shuffle);
 # a two-paneled row gets two, each at 475x516
 # a three-paneled row gets three, each at 308x516
 
-for ($pn = 50; $pn <= 75; $pn++){
+for ($pn = 86; $pn <= 90; $pn++){
 
 	#$pn = int(rand(250)) + 1;
 
@@ -24,61 +24,8 @@ for ($pn = 50; $pn <= 75; $pn++){
 	# I'm going to get my panel images from YouTube, keying the basic query to the target page number I'm creating:
 
 
-
-	# how many source vids? (up to 3)
-	$srcs = int(rand(3)) + 1;
-
-	@kept = ();
-
-	while (scalar(@kept) < $srcs){
-
-		$query = query($pn);
-
-		print "Query: $query\n";
-
-		$yturl = 'https://gdata.youtube.com/feeds/api/videos?alt=jsonc&v=2&lclk=video&format=5&duration=short&orderby=viewCount&q=allintitle:"' . $query . '"';
-
-		$init_result = `curl '$yturl'`;
-		$init_data = parse_json($init_result);
-
-		
-		if ($init_data->{'data'}->{'totalItems'} > 25){
-
-			$offset = abs(int(rand($init_data->{'data'}->{'totalItems'})) - 25);
-
-			$ytdataURL = 'https://gdata.youtube.com/feeds/api/videos?alt=jsonc&v=2&lclk=video&format=5&duration=short&orderby=viewCount&q=allintitle:"' .$query . '"&start-index=' . $offset;
-
-			$result = `curl '$ytdataURL'`;
-			$data = parse_json($result);
-
-			@items = @{$data->{'data'}->{'items'}};
-			
-			
-
-		}else{
-			@items = @{$init_data->{'data'}->{'items'}};
-
-		}
-
-		foreach my $item (@items){
-			my %vid = %{$item};
-			if ($vid{'viewCount'} < 10 & $vid{'description'} == 0 & scalar(@kept) < $srcs){
-				push (@kept, $vid{'id'});
-			}
-		}
-
-	}
-
-	foreach (@kept){
-		# download into tmp/mov folder
-
-		system("youtube-dl https://www.youtube.com/watch?v=$_ -o \"img/tmp/mov/\%\(id\)s.\%\(ext\)s\"");
-		
-		system("avconv -i img/tmp/mov/$_.mp4 -r 1 img/tmp/frames/$_-%05d.png");
-
-		unlink("img/tmp/mov/$_.mp4");
-
-	}
+	getVideo();
+	
 
 
 	# generate content area
@@ -113,15 +60,13 @@ for ($pn = 50; $pn <= 75; $pn++){
 	#system ("convert layout.png -bordercolor white -border 100x100 layout.png");
 	# page number
 	system("convert img/tmp/layout.png -fill '#222222' -font ManlyMen-BB-Regular -pointsize 44 -gravity south -annotate 0 '$pn\\n' img/tmp/layout.png");
-
 	system ("mv img/tmp/layout.png img/tmp/pages/page-$pn.png");
-
 	system ("rm img/tmp/frames/*.png");
 
 }
 
-system("mogrify -format pdf img/tmp/pages/*.png");
-system("pdftk img/tmp/pages/page-*.pdf cat output /home/zach/Dropbox/chapter3.pdf");
+#system("mogrify -format pdf img/tmp/pages/*.png");
+#system("pdftk img/tmp/pages/page-*.pdf cat output /home/zach/Dropbox/chapter3.pdf");
 
 sub query {
 	my $pn = @_[0];
@@ -425,4 +370,62 @@ sub getLegs {
 
 	print "Legs: " . scalar(@goodlegs) . "\n";
 	return @goodlegs;
+}
+
+sub getVideo {
+
+	# how many source vids? (up to 3)
+	$srcs = int(rand(3)) + 1;
+
+	@kept = ();
+
+	while (scalar(@kept) < $srcs){
+
+		$query = query($pn);
+
+		print "Query: $query\n";
+
+		$yturl = 'https://gdata.youtube.com/feeds/api/videos?alt=jsonc&v=2&lclk=video&format=5&duration=short&orderby=viewCount&q=allintitle:"' . $query . '"';
+
+		$init_result = `curl '$yturl'`;
+		$init_data = parse_json($init_result);
+
+		
+		if ($init_data->{'data'}->{'totalItems'} > 25){
+
+			$offset = abs(int(rand($init_data->{'data'}->{'totalItems'})) - 25);
+
+			$ytdataURL = 'https://gdata.youtube.com/feeds/api/videos?alt=jsonc&v=2&lclk=video&format=5&duration=short&orderby=viewCount&q=allintitle:"' .$query . '"&start-index=' . $offset;
+
+			$result = `curl '$ytdataURL'`;
+			$data = parse_json($result);
+
+			@items = @{$data->{'data'}->{'items'}};
+			
+			
+
+		}else{
+			@items = @{$init_data->{'data'}->{'items'}};
+
+		}
+
+		foreach my $item (@items){
+			my %vid = %{$item};
+			if ($vid{'viewCount'} < 10 & $vid{'description'} == 0 & scalar(@kept) < $srcs){
+				push (@kept, $vid{'id'});
+			}
+		}
+
+	}
+
+	foreach (@kept){
+		# download into tmp/mov folder
+
+		system("youtube-dl https://www.youtube.com/watch?v=$_ -o \"img/tmp/mov/\%\(id\)s.\%\(ext\)s\"");
+		
+		system("avconv -i img/tmp/mov/$_.mp4 -r 1 img/tmp/frames/$_-%05d.png");
+
+		unlink("img/tmp/mov/$_.mp4");
+
+	}
 }

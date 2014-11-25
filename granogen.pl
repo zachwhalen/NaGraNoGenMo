@@ -23,13 +23,18 @@ my %chapters = (
 	'9' => '',
 	'10' => ''
 );
+my %chapterInfo;
 # Plus some front matter, added after the fact based on images & text collected during generation
 
 $pn = 0; # overall page number incrementer
+
+
 for ($ch = 1; $ch <= 10; $ch++){ #chapter counter
 
+	my $chpTitleN;
+	my $chpCoverImg;
 
-	
+	$chapterInfo{$ch} = {'pn' => '', 'title' => '', 'img' => ''};
 
 	for ($chpn = 1; $chpn <= 24; $chpn++){ # the page within the chapter 
 		$pn += 1; # increment the actual page number
@@ -39,14 +44,24 @@ for ($ch = 1; $ch <= 10; $ch++){ #chapter counter
 			# generate a chapter title page
 			print "$pn: title page\n" if $verbose == 1;
 
+			# skip it for now, but store some data
+			$chapterInfo{$ch}->{pn} = $pn;
 
+			# placeholder
+			$blank = `convert -size 1000x1600  xc:white img/tmp/pages/page-$pn.png`;
 
 		}elsif($chpn == 2){
 			# leave it blank
 			print "$pn: blank page\n" if $verbose == 1;
-		}elsif($chpn =~ /5|10|15|20/){
+			# simple blank page with no visible number
+			$blank = `convert -size 1000x1600 xc:white img/tmp/pages/page-$pn.png`;
+
+
+		}elsif($chpn =~ /3|8|12|16|20/){
 			# make it one of the alternative layouts
 			print "$pn: alt layout\n" if $verbose == 1;
+			makeAltLayoutPage();
+
 
 		}elsif($chpn == 24){
 			# end on a full page panel
@@ -54,11 +69,17 @@ for ($ch = 1; $ch <= 10; $ch++){ #chapter counter
  				# generate the splash page
  				# generate a blank page
  				print "$pn: splash page\n" if $verbose == 1;
+ 				makeChapterEndPage();
+
  				print "$pn: blank page\n" if $verbose == 1;
+ 				$blank = `convert -size 1000x1600 xc:white  img/tmp/pages/page-$pn.png`;
  				
  			}else{
  				# generate the splash page
  				print "$pn: splash page\n" if $verbose == 1;
+ 				makeChapterEndPage();
+
+
  			}
 		}else{
 			# make a regular page
@@ -67,7 +88,6 @@ for ($ch = 1; $ch <= 10; $ch++){ #chapter counter
 			if (length($chapters{$ch}) == 0){
 				# check for a new chapter title
 				@legs = getLegs();
-				
 				foreach (shuffle @legs){
 					if (/(\w+?ing)/ & length($1) > 5){
 						$chapters{$ch} = "THE " . uc($1);
@@ -77,25 +97,28 @@ for ($ch = 1; $ch <= 10; $ch++){ #chapter counter
 
 
 		}
-
-
 	}
+
+	
 }
 
-
+# figure out the chapter titles
 my @chaps;
 foreach (sort {$a <=> $b} keys %chapters){
 	push(@chaps, $chapters{$_});
 }
 
 @chaptitles = themeChapters(@chaps);
-foreach (@chaptitles){
 
-	print "$_\n" if $verbose == 1;
-
+for (my $c = 1; $c <= $#chaptitle; $c++){
+	$chapterInfo{$c}->{title} = $chaptitles[$c];
 }
 
+foreach (keys %chapterInfo){
 
+	makeChapterTitlePage($_, $chapterInfo{$_}->{pn}, $chapterInfo{$_}->{title}, $chapterInfo{$_}->{img});
+
+}
 
 
 
@@ -499,4 +522,194 @@ sub getLegs {
 
 	print "Legs: " . scalar(@goodlegs) . "\n";
 	return @goodlegs;
+}
+
+sub getVideo {
+
+	if (defined(@_[0])){
+		$srcs = $_[0];
+	}else{
+		# how many source vids? (up to 3)
+		$srcs = int(rand(3)) + 1;
+	}
+
+
+
+	@kept = ();
+
+	while (scalar(@kept) < $srcs){
+
+		$query = query($pn);
+
+		print "Query: $query\n";
+
+		$yturl = 'https://gdata.youtube.com/feeds/api/videos?alt=jsonc&v=2&lclk=video&format=5&duration=short&orderby=viewCount&q=allintitle:"' . $query . '"';
+
+		$init_result = `curl '$yturl'`;
+		$init_data = parse_json($init_result);
+
+		
+		if ($init_data->{'data'}->{'totalItems'} > 25){
+
+			$offset = abs(int(rand($init_data->{'data'}->{'totalItems'})) - 25);
+
+			$ytdataURL = 'https://gdata.youtube.com/feeds/api/videos?alt=jsonc&v=2&lclk=video&format=5&duration=short&orderby=viewCount&q=allintitle:"' .$query . '"&start-index=' . $offset;
+
+			$result = `curl '$ytdataURL'`;
+			$data = parse_json($result);
+
+			@items = @{$data->{'data'}->{'items'}};
+			
+			
+
+		}else{
+			@items = @{$init_data->{'data'}->{'items'}};
+
+		}
+
+		foreach my $item (@items){
+			my %vid = %{$item};
+			if ($vid{'viewCount'} < 10 & $vid{'description'} == 0 & scalar(@kept) < $srcs){
+				push (@kept, $vid{'id'});
+			}
+		}
+
+	}
+
+	foreach (@kept){
+		# download into tmp/mov folder
+
+		system("youtube-dl https://www.youtube.com/watch?v=$_ -o \"img/tmp/mov/\%\(id\)s.\%\(ext\)s\"");
+		
+		system("avconv -i img/tmp/mov/$_.mp4 -r 1 img/tmp/frames/$_-%05d.png");
+
+		unlink("img/tmp/mov/$_.mp4");
+
+	}
+}
+
+sub makeRegularPage {
+
+	# make a regular page
+	# (should already have $pn from context)
+
+	
+	getVideo();
+	
+
+
+	# generate content area
+
+	system("convert -size 1000x1600 xc:white img/tmp/layout.png");
+	# assuming three rows still
+	for ($row = 0; $row <= 2; $row++){
+
+		my $yoff = $row * 436 + $row * 15;
+
+		
+		my $panes = int(rand(3)) + 1;
+		$width = (1000 - 200) / ($panes);
+
+
+		for ($p = 0; $p < $panes; $p++){
+
+			# draw a rectangle (move into panel sub later)
+			# assume full width area is 1000
+			# with 100px margin, panels are 	
+
+			$txt = makeText();
+			$frame = getFrame();
+			
+			drawPanel("img/tmp/layout.png", $frame, $txt, $width - 10, 436, $width * $p + 100, $yoff + 80);
+
+		 	# destroy it (later)
+		}
+
+	}
+
+	addPageNumber($pn);
+	system ("mv img/tmp/layout.png img/tmp/pages/page-$pn.png");
+	system ("rm img/tmp/frames/*.png");
+
+}
+
+
+sub makeChapterEndPage {
+	# (should already have $pn from context)
+	# also should have $chpTitleN from context, which assumes that I'm making these one full chapter at a time
+
+	# this is a full-sized splash page
+
+	getVideo(1);
+
+	$frame = getFrame();
+	# also move a copy of this image to the chapter cover image folder
+
+	system("cp $frame img/tmp/covers/ch-$ch.png"); 
+	$chapterInfo{$ch}->{img} = "img/tmp/covers/ch-$ch.png";
+
+	# my ($canvas, $img, $text, $width, $height, $xoffset, $yoffset)
+
+
+	my $layout = `convert -size 1000x1600 xc:white img/tmp/layout.png`;
+
+
+	my $text = makeText(1);
+
+	drawPanel("img/tmp/layout.png", $frame, $text, 750, 1300, 125, 125);
+
+	addPageNumber($pn);
+	
+	system("mv img/tmp/layout.png img/tmp/pages/page-$pn.png");
+
+}
+
+sub makeChapterTitlePage {
+	
+	# get details from %chapterInfo
+	
+	my ($ch, $pn, $title, $img) = @_;
+	$page = `convert -size 1000x1600 xc:white img/tmp/layout.png`;
+
+	$make = `convert img/tmp/layout.png -fill '#222222' -font ManlyMen-BB-Regular -pointsize 60 -gravity north -annotate 0 '\\n\\n\\n\\nChapter $ch:' -pointsize 80 -gravity north -annotate 0 '\\n\\n\\n\\n$title' img/tmp/layout.png`;
+
+
+	my $tw = 500 * 2 . 'x<';
+	my $th = 400 * 2;
+
+
+	$make = `convert $img -resize 'x$th' -resize '$tw' -resize 50% -gravity center -crop $tg +repage -colorspace gray -sketch 0x20+120 img/tmp/fill.png`;
+
+
+	$make = `convert img/tmp/layout.png -page +500+700 img/tmp/fill.png -layers flatten img/tmp/layout.png`;
+
+	system("mv img/tmp/layout.png img/tmp/pages/page-$pn.png");
+
+
+}
+
+
+sub makeAltLayoutPage {
+	# (should already have $pn from context)
+	makeRegularPage(); # for now
+}
+
+sub makeFrontMatter {
+	# cover
+	# blank
+	# title page
+	# info page
+	# contents 
+	# blank 
+
+
+}
+
+sub addPageNumber {
+
+	unless (defined $pn) { $pn = @_[0]; }
+
+	system("convert img/tmp/layout.png -fill '#222222' -font ManlyMen-BB-Regular -pointsize 44 -gravity south -annotate 0 '$pn\\n' img/tmp/layout.png");
+
+
 }
