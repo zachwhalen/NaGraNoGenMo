@@ -29,14 +29,14 @@ my %chapterInfo;
 $pn = 0; # overall page number incrementer
 
 
-for ($ch = 1; $ch <= 10; $ch++){ #chapter counter
+for ($ch = 1; $ch <= 3; $ch++){ #chapter counter
 
 	my $chpTitleN;
 	my $chpCoverImg;
 
 	$chapterInfo{$ch} = {'pn' => '', 'title' => '', 'img' => ''};
 
-	for ($chpn = 1; $chpn <= 24; $chpn++){ # the page within the chapter 
+	for ($chpn = 1; $chpn <= 4; $chpn++){ # the page within the chapter 
 		$pn += 1; # increment the actual page number
 
 		# some chapter-page positions have special roles
@@ -63,7 +63,7 @@ for ($ch = 1; $ch <= 10; $ch++){ #chapter counter
 			makeAltLayoutPage();
 
 
-		}elsif($chpn == 24){
+		}elsif($chpn == 4){
 			# end on a full page panel
  			if ($chpn % 2 == 1){ 
  				# generate the splash page
@@ -84,6 +84,9 @@ for ($ch = 1; $ch <= 10; $ch++){ #chapter counter
 		}else{
 			# make a regular page
 			print "$pn: regular page\n" if $verbose == 1;
+
+			makeRegularPage();
+
 
 			if (length($chapters{$ch}) == 0){
 				# check for a new chapter title
@@ -120,6 +123,10 @@ foreach (keys %chapterInfo){
 
 }
 
+
+# assembly
+system("mogrify -format pdf img/tmp/pages/*.png");
+system("pdftk img/tmp/pages/*.pdf cat output output/novel.pdf");
 
 
 exit;
@@ -629,7 +636,7 @@ sub makeRegularPage {
 
 	addPageNumber($pn);
 	system ("mv img/tmp/layout.png img/tmp/pages/page-$pn.png");
-	system ("rm img/tmp/frames/*.png");
+	cleanUp();
 
 }
 
@@ -659,8 +666,9 @@ sub makeChapterEndPage {
 	drawPanel("img/tmp/layout.png", $frame, $text, 750, 1300, 125, 125);
 
 	addPageNumber($pn);
-	
+
 	system("mv img/tmp/layout.png img/tmp/pages/page-$pn.png");
+	cleanUp();
 
 }
 
@@ -674,17 +682,22 @@ sub makeChapterTitlePage {
 	$make = `convert img/tmp/layout.png -fill '#222222' -font ManlyMen-BB-Regular -pointsize 60 -gravity north -annotate 0 '\\n\\n\\n\\nChapter $ch:' -pointsize 80 -gravity north -annotate 0 '\\n\\n\\n\\n$title' img/tmp/layout.png`;
 
 
-	my $tw = 500 * 2 . 'x<';
-	my $th = 400 * 2;
+	my $tw = 500 * 5 . 'x<';
+	my $th = 400 * 5;
 
 
-	$make = `convert $img -resize 'x$th' -resize '$tw' -resize 50% -gravity center -crop $tg +repage -colorspace gray -sketch 0x20+120 img/tmp/fill.png`;
+	my $sktchgeo = int(rand(15)) + 1 . 'x20+' . int(rand(150)) + 50;  
 
+	
+	my $cropgeo = "650x650+" . int(rand(300)). "+" . int(rand(300));
 
-	$make = `convert img/tmp/layout.png -page +500+700 img/tmp/fill.png -layers flatten img/tmp/layout.png`;
+	$make = `convert $img -resize 'x$th' -resize '$tw' -resize 50% -gravity center -crop $cropgeo +repage -paint 2 -colorspace gray -sketch $sktchgeo img/tmp/fill.png`;
+
+	$make = `convert img/tmp/fill.png -alpha set -virtual-pixel transparent -channel A -blur 0x40 -level 90%,100% +channel -layers flatten img/tmp/fill.png`;
+	$make = `convert img/tmp/layout.png -page +175+500 img/tmp/fill.png -layers flatten img/tmp/layout.png`;
 
 	system("mv img/tmp/layout.png img/tmp/pages/page-$pn.png");
-
+	cleanUp();
 
 }
 
@@ -712,4 +725,10 @@ sub addPageNumber {
 	system("convert img/tmp/layout.png -fill '#222222' -font ManlyMen-BB-Regular -pointsize 44 -gravity south -annotate 0 '$pn\\n' img/tmp/layout.png");
 
 
+}
+
+sub cleanUp {
+
+	system("rm img/tmp/frames/*.png");
+	system("rm img/tmp/mov/*");
 }
