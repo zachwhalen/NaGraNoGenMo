@@ -110,7 +110,7 @@ for ($ch = 1; $ch <= 3; $ch++){ #chapter counter
 # figure out the chapter titles
 my @chaps;
 foreach (sort {$a <=> $b} keys %chapters){
-	print "A chapter $_ called $chapters{$_}\n";
+	print "Chapter $_ is called $chapters{$_}\n";
 	push(@chaps, $chapters{$_});
 }
 

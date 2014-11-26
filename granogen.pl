@@ -13,15 +13,17 @@ my $verbose = 1;
 # 10 chapters of 25 pages each. I don't know why but I needed to spell out each valuelike this.
 my %chapters = (
 	'1' => '',
-	'2' => '',
-	'3' => '',
-	'4' => '',
-	'5' => '',
-	'6' => '',
-	'7' => '',
-	'8' => '',
-	'9' => '',
-	'10' => ''
+	'2' => ''
+	#,
+	#'3' => ''
+	# ,
+	# '4' => '',
+	# '5' => '',
+	# '6' => '',
+	# '7' => '',
+	# '8' => '',
+	# '9' => '',
+	# '10' => ''
 );
 my %chapterInfo;
 # Plus some front matter, added after the fact based on images & text collected during generation
@@ -29,14 +31,14 @@ my %chapterInfo;
 $pn = 0; # overall page number incrementer
 
 
-for ($ch = 1; $ch <= 3; $ch++){ #chapter counter
+for ($ch = 1; $ch <= 2; $ch++){ #chapter counter
 
 	my $chpTitleN;
 	my $chpCoverImg;
 
 	$chapterInfo{$ch} = {'pn' => '', 'title' => '', 'img' => ''};
 
-	for ($chpn = 1; $chpn <= 4; $chpn++){ # the page within the chapter 
+	for ($chpn = 1; $chpn <= 6; $chpn++){ # the page within the chapter, eventually, 25
 		$pn += 1; # increment the actual page number
 
 		# some chapter-page positions have special roles
@@ -63,7 +65,7 @@ for ($ch = 1; $ch <= 3; $ch++){ #chapter counter
 			makeAltLayoutPage();
 
 
-		}elsif($chpn == 4){
+		}elsif($chpn == 6){ # easier to make this an even number, like 24
 			# end on a full page panel
  			if ($chpn % 2 == 1){ 
  				# generate the splash page
@@ -87,8 +89,9 @@ for ($ch = 1; $ch <= 3; $ch++){ #chapter counter
 
 			makeRegularPage();
 
-
+			
 			if (length($chapters{$ch}) == 0){
+				print "I should look for a new title.\n";
 				# check for a new chapter title
 				@legs = getLegs();
 				foreach (shuffle @legs){
@@ -108,25 +111,30 @@ for ($ch = 1; $ch <= 3; $ch++){ #chapter counter
 # figure out the chapter titles
 my @chaps;
 foreach (sort {$a <=> $b} keys %chapters){
+	print "Chapter $_ is called $chapters{$_}\n";
 	push(@chaps, $chapters{$_});
 }
 
 @chaptitles = themeChapters(@chaps);
 
-for (my $c = 1; $c <= $#chaptitles; $c++){
-	$chapterInfo{$c}->{title} = $chaptitles[$c];
+for (my $c = 1; $c <= $#chaptitles + 1; $c++){
+	$chapterInfo{$c}->{title} = $chaptitles[$c-1];
 }
 
-foreach (keys %chapterInfo){
+foreach (sort {$a <=> $b} keys %chapterInfo){
 
-	makeChapterTitlePage($_, $chapterInfo{$_}->{pn}, $chapterInfo{$_}->{title}, $chapterInfo{$_}->{img});
+	@info = ($_, $chapterInfo{$_}->{pn}, $chapterInfo{$_}->{title}, $chapterInfo{$_}->{img});
 
+	#print "Making title page for Chapter $ch, Page $pn, titled $title, with $img for the cover.\n";
+
+	makeChapterTitlePage(@info);
 }
 
+# make front matter
 
 # assembly
-system("mogrify -format pdf img/tmp/pages/*.png");
-system("pdftk img/tmp/pages/*.pdf cat output output/novel.pdf");
+#system("mogrify -format pdf img/tmp/pages/*.png");
+#system("pdftk img/tmp/pages/*.pdf cat output output/novel.pdf");
 
 
 exit;
@@ -349,10 +357,7 @@ sub drawPanel  {
 
 	my ($canvas, $img, $text, $width, $height, $xoffset, $yoffset) = @_;
 
-	# first, where will the text go?
-	# Try interior first. No wider than 70% of inside of panel. No taller than 30% of panel.
-	# if it is, make an external "caption" like Fun home
-	# if it's still taller than 40% of total panel area, get some new text
+
 
 
 	$maxIntWidth = $width - 20;
@@ -362,9 +367,8 @@ sub drawPanel  {
 	$maxWidthTxt = (($maxIntWidth - 30) * .7) . 'x';
 
 
-	#unlink("img/tmp/text.png");
-	print " try and write my text to an initial image file\n";
-	$txtImg = `convert -background '#ffffff' -fill \"#555555\" -font DigitalStrip-2.0-BB-Regular -pointsize 20 -size $maxWidthTxt caption:'$text' -bordercolor '#ffffff' -border 12x12 img/tmp/text.png`;
+	print "Writing my text to an initial image file\n";
+	$txtImg = `convert -background '#ffffff' -fill \"#555555\" -font DigitalStrip-2.0-BB-Regular -pointsize 24 -size $maxWidthTxt caption:'$text' -bordercolor '#ffffff' -border 12x12 img/tmp/text.png`;
 
 	
 	@details = split(" ", `identify img/tmp/text.png`);
@@ -374,7 +378,7 @@ sub drawPanel  {
 
 	if ($txtHeight < ($maxIntHeight * .3)){
 		# interior text
-		print "make interior text\n";
+		print "Putting text inside the panel\n";
 
 		# make a panel first
 		drawRect($canvas, $img, $width, $height, $xoffset, $yoffset);
@@ -387,17 +391,34 @@ sub drawPanel  {
 		unlink("img/tmp/text.png");
 	}else{
 		# exterior text
-		print "make exterior text\n";
+		print "Putting text outside the panel\n";
 		# make a new text image
-		$txtImg = `convert -background '#ffffff' -fill \"#555555\" -font DigitalStrip-2.0-BB-Regular -pointsize 22 -size $width caption:'$text' -bordercolor '#ffffff' -border 5x5 img/tmp/text.png`;
+		$txtImg = `convert -background '#ffffff' -fill \"#555555\" -font DigitalStrip-2.0-BB-Regular -pointsize 24 -size $width caption:'$text' -bordercolor '#ffffff' -border 5x5 img/tmp/text.png`;
 
-		# stick it on the canvas
-		$placeText = `convert $canvas -page +$xoffset+$yoffset img/tmp/text.png -layers flatten $canvas`;
+
+
 		@details = split(" ", `identify img/tmp/text.png`);
 		($txtWidth, $txtHeight) = split("x", $details[2]);
+
+		if ($txtHeight > ($maxIntHeight * .5)){
+			# stick it on the canvas
+			$placeText = `convert $canvas -page +$xoffset+$yoffset img/tmp/text.png -layers flatten $canvas`;
+			# make a textless panel
+			drawRect($canvas, $img, $width, $height - $txtHeight, $xoffset, $yoffset + $txtHeight - 8);
+		}else{
+
+			print "Actually the text is to big so get rid of the image\n";
+			$textgeo = $maxIntWidth . "x" . $maxIntHeight;
+			# just make the text into a panel
+			$txtImg = `convert -background '#ffffff' -fill \"#555555\" -font DigitalStrip-2.0-BB-Regular -size $textgeo caption:'$text' -bordercolor '#ffffff' -border 5x5 img/tmp/text.png`;
+			$placeText = `convert $canvas -page +$xoffset+$yoffset img/tmp/text.png -layers flatten $canvas`;
+			
+		}
+
+		
+		
 		unlink("img/tmp/text.png");
-		# make a textless panel
-		drawRect($canvas, $img, $width, $height - $txtHeight, $xoffset, $yoffset + $txtHeight - 8);
+		
 	}
 
 
@@ -677,6 +698,10 @@ sub makeChapterTitlePage {
 	# get details from %chapterInfo
 	
 	my ($ch, $pn, $title, $img) = @_;
+
+	print "Making title page for Chapter $ch, Page $pn, titled $title, with $img for the cover.\n";
+
+
 	$page = `convert -size 1000x1600 xc:white img/tmp/layout.png`;
 
 	$make = `convert img/tmp/layout.png -fill '#222222' -font ManlyMen-BB-Regular -pointsize 60 -gravity north -annotate 0 '\\n\\n\\n\\nChapter $ch:' -pointsize 80 -gravity north -annotate 0 '\\n\\n\\n\\n$title' img/tmp/layout.png`;
@@ -689,12 +714,12 @@ sub makeChapterTitlePage {
 	my $sktchgeo = int(rand(15)) + 1 . 'x20+' . int(rand(150)) + 50;  
 
 	
-	my $cropgeo = "650x650+" . int(rand(300)). "+" . int(rand(300));
+	my $cropgeo = "700x700+" . int(rand(300)). "+" . int(rand(300));
 
-	$make = `convert $img -resize 'x$th' -resize '$tw' -resize 50% -gravity center -crop $cropgeo +repage -paint 2 -colorspace gray -sketch $sktchgeo img/tmp/fill.png`;
+	$make = `convert $img -resize 'x$th' -resize '$tw' -resize 50% -gravity center -crop $cropgeo +repage -paint 10 -colorspace gray img/tmp/fill.png`;
 
-	$make = `convert img/tmp/fill.png -alpha set -virtual-pixel transparent -channel A -blur 0x40 -level 90%,100% +channel -layers flatten img/tmp/fill.png`;
-	$make = `convert img/tmp/layout.png -page +175+500 img/tmp/fill.png -layers flatten img/tmp/layout.png`;
+	$make = `convert img/tmp/fill.png -alpha set -virtual-pixel transparent -channel A -blur 10x40 -level 90%,100% +channel -layers flatten img/tmp/fill.png`;
+	$make = `convert img/tmp/layout.png -page +150+500 img/tmp/fill.png -layers flatten img/tmp/layout.png`;
 
 	system("mv img/tmp/layout.png img/tmp/pages/page-$pn.png");
 	cleanUp();
@@ -729,6 +754,15 @@ sub addPageNumber {
 
 sub cleanUp {
 
-	system("rm img/tmp/frames/*.png");
-	system("rm img/tmp/mov/*");
+
+	my @frames = glob "img/tmp/frames/*.png";
+	foreach (@frames) {
+		unlink($_);
+	}
+	
+	my @mov = glob "img/tmp/mov/*";
+	foreach (@mov){
+		unlink($_);
+	}
+
 }
