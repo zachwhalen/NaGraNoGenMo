@@ -400,7 +400,7 @@ sub drawPanel  {
 		@details = split(" ", `identify img/tmp/text.png`);
 		($txtWidth, $txtHeight) = split("x", $details[2]);
 
-		if ($txtHeight > ($maxIntHeight * .5)){
+		if ($txtHeight < ($maxIntHeight * .4)){
 			# stick it on the canvas
 			$placeText = `convert $canvas -page +$xoffset+$yoffset img/tmp/text.png -layers flatten $canvas`;
 			# make a textless panel
