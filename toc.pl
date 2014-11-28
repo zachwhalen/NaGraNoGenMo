@@ -11,7 +11,9 @@
 	"THE PARENTING",
 	"THE OPENING",
 	"THE ENDING, PART 2",
-	"THE WISHING, PART 2"
+	"THE WISHING, PART 2",
+	"The wasting",
+	"The tickling"
 );
 
 

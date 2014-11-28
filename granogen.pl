@@ -5,10 +5,11 @@ use Date::Parse;
 use List::MoreUtils qw(uniq);
 use List::Util qw(shuffle);
 
+# some general variables
+my (%chapterInfo, @chapters, @chaps, $bookTitle);
+
 # for testing
 my $verbose = 1;
-
-# First, set up some outline steps
 
 # 10 chapters of 25 pages each. I don't know why but I needed to spell out each valuelike this.
 my %chapters = (
@@ -25,11 +26,13 @@ my %chapters = (
 	# '9' => '',
 	# '10' => ''
 );
-my %chapterInfo;
+
 # Plus some front matter, added after the fact based on images & text collected during generation
 
-$pn = 0; # overall page number incrementer
+my $pn = 0; # overall page number incrementer
 
+
+# make the pages
 
 for ($ch = 1; $ch <= 2; $ch++){ #chapter counter
 
@@ -108,8 +111,8 @@ for ($ch = 1; $ch <= 2; $ch++){ #chapter counter
 	
 }
 
-# figure out the chapter titles
-my @chaps;
+# Now that it's assembled, figure out the chapter titles
+
 foreach (sort {$a <=> $b} keys %chapters){
 	print "Chapter $_ is called $chapters{$_}\n";
 	push(@chaps, $chapters{$_});
@@ -138,7 +141,10 @@ foreach (sort {$a <=> $b} keys %chapterInfo){
 
 
 exit;
-# SUBS
+
+###############################
+# SUBS ########################
+###############################
 
 sub themeChapters {
 	@chaps = @_;
@@ -306,6 +312,7 @@ sub drawRect  {
 
 	my $bx = $xoffset + 5;
 	my $by = $yoffset + $height;
+
 
 	# fill it in with the image
 	drawImage($canvas, $fill, $width + 7, $height + 7, $xoffset + 7 , $yoffset + 7);
@@ -764,5 +771,73 @@ sub cleanUp {
 	foreach (@mov){
 		unlink($_);
 	}
+
+}
+
+sub makeTitlePage {
+
+	print "Making the title page.\n";
+
+	$f = `convert -size 1000x1600 xc:white titlePage.png`;
+
+	$f = `convert -fill "#222222" -font ManlyMen-BB-Regular -size 750x400 -gravity center caption:'This is the title' title.png`;
+
+	
+	$f = `convert titlePage.png -fill "#222222" -font ManlyMen-BB-Italic -pointsize 44 -gravity south -annotate +0+450 "'by' Zach Whalen" -pointsize 40 -gravity south -annotate +0+350 "NaNoGenMo // 2014" titlePage.png`;
+
+	# add an hr near the bottom
+	$line = "img/sources/line1.png";	
+	$width = 800;
+	$seed = int(rand(2000 - $width - 10));
+	system("convert $line -crop 10x$width+0+$seed -rotate 90 -alpha set img/tmp/lineT.png");
+
+
+	$f = `convert -page +0+0 titlePage.png -page +125+525 title.png -page +100+900 img/tmp/lineT.png -layers flatten titlePage.png`;
+
+
+
+}
+
+sub makeFrontCover {
+
+	# eventually, I'll keep a directory of images that i've used in panels
+	# for now, just make blank rectangles to get the math right
+	# should probably also give drawRect a fallback if missing fill.png
+
+	#my ($canvas, $fill, $width, $height, $xoffset, $yoffset) = @_;
+
+	@blnk = (
+		'1,3', '2,3','3,3','4,3',
+		'1,4', '2,4', '3,4','4,4',
+		'1,5', '2,5', '3,5', '4,5'
+		);
+
+	%blanks;
+	foreach(@blnk){
+		$blanks{"$_"} = 1;
+	}
+
+
+	$f = `convert -size 1000x1600 xc:"#1a1a1a" cover.png`;
+
+	for (my $r = 0; $r <= 8; $r++){
+		$yoff = ($r * 200) - 100;
+
+		for (my $c = 0; $c <= 5; $c++){
+			$xoff = ($c * 200) - 100;
+			
+			unless($blanks{"$c,$r"} == 1){
+				drawRect("cover.png", "fill.png", 190, 190, $xoff, $yoff);
+			
+			}
+			
+		}
+	}
+
+	# draw the actual title
+	#$f = `convert -size 1000x1600 xc:blue over.png`;
+	$f = `convert -background "#1a1a1a" -fill "#fafafa" -font ManlyMen-BB-Regular -size 750x400 -gravity center caption:'This is the title' title.png`;
+
+	$f = `convert -page +0+0 cover.png -page +125+525 title.png -layers flatten cover.png`;
 
 }
