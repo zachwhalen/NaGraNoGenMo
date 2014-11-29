@@ -3,13 +3,13 @@
 ########################################################
 #	TODO ################################################
 # 
-#  	randomize offsets for the fill images
-#  	make alternate panels 
-#  	make alternate layouts 
-#  	about page 
-#  	assembling the pages 
-#	finish title page
-#	key the text loaded to the videodownload  
+#  	X	randomize offsets for the fill images (I think I got it; hard to test for though)
+#  		make alternate panels 
+#  		make alternate layouts 
+#  		about page 
+#  		assembling the pages 
+#	X	finish title page
+#		key the text loaded to the videodownload  
 #	
 
 
@@ -340,10 +340,11 @@ sub drawImage {
 	@details = split(" ", `identify $fill`);
 	($imgWidth, $imgHeight) = split("x", $details[2]);
 
+	# so if it's 1000 wide and I need 512, x offset can be between 0 and (1000 - 512)
 
 	$targetWidth = $width - 10;
 	$targetHeight = $height - 10;
-	my $tg = $targetWidth . "x" . $targetHeight . "+0+0";
+	my $tg = $targetWidth . "x" . $targetHeight . "+" . int(rand($width - $targetWidth)) ."+" . int(rand($height - $targetHeight)) ;
 
 	# is it big enough?
 	if ($imgWidth > $width & $imgHeight > $height){
@@ -793,7 +794,7 @@ sub makeTitlePage {
 	$f = `convert -fill "#222222" -font ManlyMen-BB-Regular -size 750x400 -gravity center caption:'This is the title' title.png`;
 
 	
-	$f = `convert titlePage.png -fill "#222222" -font ManlyMen-BB-Italic -pointsize 44 -gravity south -annotate +0+450 "'by' Zach Whalen" -pointsize 40 -gravity south -annotate +0+350 "NaNoGenMo // 2014" titlePage.png`;
+	$f = `convert titlePage.png -fill "#222222" -font ManlyMen-BB-Italic -pointsize 44 -gravity south -annotate +0+500 "'by' Zach Whalen" -pointsize 40 -gravity south -annotate +0+350 "for\\nNaNoGenMo 2014" titlePage.png`;
 
 	# add an hr near the bottom
 	$line = "img/sources/line1.png";	
