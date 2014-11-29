@@ -3,6 +3,9 @@ use JSON::Parse 'parse_json';
 
 
 $yt = `youtube-dl --write-info-json wOfmwkjczY8`;
+$result = `curl $url`;
+$data = parse_json($result);
+
 
 @data = split("\n",$yt);
 @dates;

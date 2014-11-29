@@ -9,16 +9,28 @@
 #  		about page 
 #  		assembling the pages 
 #	X	finish title page
-#		key the text loaded to the videodownload  
+#		key the text loaded to the videodownloaded date 
 #	
 
 
-use JSON::Parse 'parse_json';
+
+
+use JSON::Parse qw(parse_json json_file_to_perl);
 use Date::Parse;
 use List::MoreUtils qw(uniq);
 use List::Util qw(shuffle);
 
-# some general variables
+$pn = 37;
+
+$pageDate = str2time("20140520");
+print "pagedate: ".  $pageDate . "\n";
+getVideo(1);
+
+print "pagedate: " . $pageDate . "\n";
+
+exit;
+
+# some global variables
 my (%chapterInfo, @chapters, @chaps, $bookTitle);
 
 # for testing
@@ -340,8 +352,6 @@ sub drawImage {
 	@details = split(" ", `identify $fill`);
 	($imgWidth, $imgHeight) = split("x", $details[2]);
 
-	# so if it's 1000 wide and I need 512, x offset can be between 0 and (1000 - 512)
-
 	$targetWidth = $width - 10;
 	$targetHeight = $height - 10;
 	my $tg = $targetWidth . "x" . $targetHeight . "+" . int(rand($width - $targetWidth)) ."+" . int(rand($height - $targetHeight)) ;
@@ -349,8 +359,6 @@ sub drawImage {
 	# is it big enough?
 	if ($imgWidth > $width & $imgHeight > $height){
 
-		# TODO pick a randomized offset for cropping
-		#system("convert $fill -crop $tg -colorspace gray -sketch 0x20+120 fill.png");
 		system("convert $fill -crop $tg -paint 5 img/tmp/fill.png");
 
 	}else{
@@ -579,11 +587,12 @@ sub getVideo {
 		$srcs = int(rand(3)) + 1;
 	}
 
-
+	#tmp
+	$pn = 67;
 
 	@kept = ();
 
-	while (scalar(@kept) < $srcs){
+	while (scalar(@kept) < $srcs){	
 
 		$query = query($pn);
 
@@ -622,16 +631,32 @@ sub getVideo {
 
 	}
 
+	my @videoDates;
+
 	foreach (@kept){
 		# download into tmp/mov folder
 
-		system("youtube-dl https://www.youtube.com/watch?v=$_ -o \"img/tmp/mov/\%\(id\)s.\%\(ext\)s\"");
+		system("youtube-dl --write-info-json https://www.youtube.com/watch?v=$_ -o \"img/tmp/mov/\%\(id\)s.\%\(ext\)s\"");
 		
-		system("avconv -i img/tmp/mov/$_.mp4 -r 1 img/tmp/frames/$_-%05d.png");
+		$extract = `avconv -i img/tmp/mov/$_.mp4 -r 1 img/tmp/frames/$_-%05d.png`;
 
-		unlink("img/tmp/mov/$_.mp4");
+		if ($extract =~ /creation_time\s+?:\s+(\d{4}-\d{2}-\d{2})/){
+			push(@videoDates, str2time($1));
+		}
+
+		unlink("img/tmp/mov/$_.mp4") or die "Couldn't unlink mp4 : $!\n\n";
 
 	}
+
+	# set the operative timestamp for text
+
+	$pageDate = str2time("2014-11-30");
+
+	@videoDates = sort {$a <=> $b} @videoDates;
+	if ($videoDates[0] > 1356998400){
+		$pageDate = $videoDates[0];
+	}
+
 }
 
 sub makeRegularPage {
