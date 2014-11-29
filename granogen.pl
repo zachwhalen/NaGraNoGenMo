@@ -1,6 +1,17 @@
 #!/usr/bin/local/perl
 
-## TODO #######################
+########################################################
+#	TODO ################################################
+# 
+#  	randomize offsets for the fill images
+#  	make alternate panels 
+#  	make alternate layouts 
+#  	about page 
+#  	assembling the pages 
+#	finish title page
+#	key the text loaded to the videodownload  
+#	
+
 
 use JSON::Parse 'parse_json';
 use Date::Parse;
@@ -105,12 +116,8 @@ for ($ch = 1; $ch <= 2; $ch++){ #chapter counter
 					}
 				}
 			}
-
-
 		}
 	}
-
-	
 }
 
 # Now that it's assembled, figure out the chapter titles
@@ -137,16 +144,17 @@ foreach (sort {$a <=> $b} keys %chapterInfo){
 
 # make front matter
 
-# assembly
+# assemble
+
 #system("mogrify -format pdf img/tmp/pages/*.png");
 #system("pdftk img/tmp/pages/*.pdf cat output output/novel.pdf");
 
 
 exit;
 
-###############################
-# SUBS ########################
-###############################
+########################################################
+# SUBS #################################################
+########################################################
 
 sub themeChapters {
 	@chaps = @_;
