@@ -6,7 +6,7 @@
 #  	X	randomize offsets for the fill images (I think I got it; hard to test for though)
 #  		make some alternate panels 
 #  	X	make alternate layouts 
-#  		an about page 
+#  	X	an about page 
 #  		assembling the pages 
 #		- pdf
 #		- cbr
@@ -14,6 +14,8 @@
 #	X	finish title page layout
 #	X	key the text loaded to the videodownloaded's creation date 
 #	X	keep used fill images for collaging onto the cover
+
+
 
 my $start = time;
 
@@ -33,17 +35,15 @@ my $verbose = 1;
 # 10 chapters of 25 pages each. I don't know why but I needed to spell out each valuelike this.
 my %chapters = (
 	'1' => '',
-	'2' => ''
-	#,
-	#'3' => ''
-	# ,
-	# '4' => '',
-	# '5' => '',
-	# '6' => '',
-	# '7' => '',
-	# '8' => '',
-	# '9' => '',
-	# '10' => ''
+	'2' => '',
+	'3' => '',
+	'4' => '',
+	'5' => '',
+	'6' => '',
+	'7' => '',
+	'8' => '',
+	'9' => '',
+	'10' => ''
 );
 
 # Plus some front matter, added after the fact based on images & text collected during generation
@@ -53,7 +53,7 @@ my $pn = 0; # overall page number incrementer
 
 # make the pages
 
-for ($ch = 1; $ch <= 2; $ch++){ #chapter counter
+for ($ch = 1; $ch <= 10; $ch++){ #chapter counter
 
 	my $chpTitleN;
 	my $chpCoverImg;
@@ -72,13 +72,15 @@ for ($ch = 1; $ch <= 2; $ch++){ #chapter counter
 			$chapterInfo{$ch}->{pn} = $pn;
 
 			# placeholder
-			$blank = `convert -size 1000x1600  xc:white img/tmp/pages/page-$pn.png`;
+			$ppn = sprintf("%05d", $pn);
+			$blank = `convert -size 1000x1600  xc:white img/tmp/pages/page-$ppn.png`;
 
 		}elsif($chpn == 2){
 			# leave it blank
 			print "$pn: blank page\n" if $verbose == 1;
 			# simple blank page with no visible number
-			$blank = `convert -size 1000x1600 xc:white img/tmp/pages/page-$pn.png`;
+			$ppn = sprintf("%05d", $pn);
+			$blank = `convert -size 1000x1600 xc:white img/tmp/pages/page-$ppn.png`;
 
 
 		}elsif($chpn =~ /3|8|12|16|20/){
@@ -96,7 +98,8 @@ for ($ch = 1; $ch <= 2; $ch++){ #chapter counter
  				makeChapterEndPage();
 
  				print "$pn: blank page\n" if $verbose == 1;
- 				$blank = `convert -size 1000x1600 xc:white  img/tmp/pages/page-$pn.png`;
+ 				$ppn = sprintf("%05d", $pn);
+ 				$blank = `convert -size 1000x1600 xc:white  img/tmp/pages/page-$ppn.png`;
  				
  			}else{
  				# generate the splash page
@@ -149,7 +152,10 @@ foreach (sort {$a <=> $b} keys %chapterInfo){
 }
 
 
-# figure out the booktitle and set to #bookTitle
+# figure out the booktitle and set to $bookTitle
+$bookTitle = "The $chaps[0], The $chaps[4] and the $chaps[9]";
+
+
 
 # make front matter
 makeFrontCover();
@@ -160,14 +166,74 @@ makeTitlePage();
 
 makeToc();
 
+makeBackCover();
+
+
+# assemble 
+# this is going to be ugly
+print "Assembling...\n";
+
+# a general purpose blank page
+system("convert -size 1000x1600 xc:white img/tmp/pages/blank.png");
+
+# front matter
+my @frontMatter = ("cover", "blank", "titlePage", "about", "toc", "blank");
+
+# makeBackCover();
+my @backMatter = ("end", "blank", "backCover");
+
+# make a PDF
+print "Making a PDF .. \n";
+system("mogrify -format pdf img/tmp/pages/*.png");
+
+$pdffront = join(" ", map {"img/tmp/pages/" . $_ . ".pdf"} @frontMatter);
+my @pdfpages = glob "img/tmp/pages/page-*.pdf";
+$pdfs = join(" ", @pdfpages);
+$pdfback = join(" ", map {"img/tmp/pages/" . $_ . ".pdf"} @backMatter);
+
+
+system("pdftk $pdffront $pdfs $pdfback cat output output/book.pdf");
 
 
 
-# assemble
 
-#system("mogrify -format pdf img/tmp/pages/*.png");
-#system("pdftk img/tmp/pages/*.pdf cat output output/novel.pdf");
+#make a CBR
+print "Making a CBR...\n";
+system("mogrify -format jpg -quality 80 img/tmp/pages/*.png");
+@jpgfront = map {"img/tmp/pages/" . $_ . ".jpg"} @frontMatter;
+@jpgpages = glob "img/tmp/pages/page-*.jpg";
+@jpgback =  map {"img/tmp/pages/" . $_ . ".pdf"} @backMatter;
 
+my $cbpn = 0;
+
+foreach(@jpgfront){
+	$tg = $_;
+	$tg =~ s/img\/tmp\/pages\///i;
+	$ppn = sprintf("%03d", $cbpn);
+	system("mv $_ img/tmp/pages/$ppn-$tg");
+	$cbpn += 1;
+}
+foreach(@jpgpages){
+	$tg = $_;
+	$tg =~ s/img\/tmp\/pages\///i;
+	$ppn = sprintf("%03d", $cbpn);
+	system("mv $_ img/tmp/pages/$ppn-$tg");
+	$cbpn += 1;
+}
+foreach(@jpgback){
+	$tg = $_;
+	$tg =~ s/img\/tmp\/pages\///i;
+	$ppn = sprintf("%03d", $cbpn);
+	system("mv $_ img/tmp/pages/$ppn-$tg");
+	$cbpn += 1;
+}
+
+$cbrpages = join(" ", @jpgfront) . " " . join(" ", @jpgpages) . " " . join(" ", @jpgback);
+
+system("rar a output/book.cbr $cbrpages");
+
+
+print "Done!?\n";
 
 exit;
 
@@ -659,7 +725,8 @@ sub makeRegularPage {
 	}
 
 	addPageNumber($pn);
-	system ("mv img/tmp/layout.png img/tmp/pages/page-$pn.png");
+	$ppn = sprintf("%05d", $pn);
+	system ("mv img/tmp/layout.png img/tmp/pages/page-$ppn.png");
 	cleanUp();
 
 }
@@ -693,8 +760,8 @@ sub makeChapterEndPage {
 	drawPanel("img/tmp/layout.png", $frame, $text, 750, 1300, 125, 125);
 
 	addPageNumber($pn);
-
-	system("mv img/tmp/layout.png img/tmp/pages/page-$pn.png");
+	$ppn = sprintf("%05d", $pn);
+	system("mv img/tmp/layout.png img/tmp/pages/page-$ppn.png");
 	cleanUp();
 
 }
@@ -726,8 +793,8 @@ sub makeChapterTitlePage {
 
 	$make = `convert img/tmp/fill.png -alpha set -virtual-pixel transparent -channel A -blur 10x40 -level 90%,100% +channel -layers flatten img/tmp/fill.png`;
 	$make = `convert img/tmp/layout.png -page +150+500 img/tmp/fill.png -layers flatten img/tmp/layout.png`;
-
-	system("mv img/tmp/layout.png img/tmp/pages/page-$pn.png");
+	$ppn = sprintf("%05d", $pn);
+	system("mv img/tmp/layout.png img/tmp/pages/page-$ppn.png");
 	cleanUp();
 
 }
@@ -783,7 +850,8 @@ sub makeAltLayoutPage {
 	}
 
 	addPageNumber($pn);
-	system ("mv img/tmp/layout.png img/tmp/pages/page-$pn.png");
+	$ppn = sprintf("%05d", $pn);
+	system ("mv img/tmp/layout.png img/tmp/pages/page-$ppn.png");
 	cleanUp();
 }
 
@@ -886,7 +954,7 @@ sub makeFrontCover {
 
 	# draw the actual title ## What is the title??
 	#$f = `convert -size 1000x1600 xc:blue over.png`;
-	$f = `convert -background transparent -fill \"#fafafa\" -font ManlyMen-BB-Regular -size 750x400 -gravity center caption:'This is the title' img/tmp/title.png`;
+	$f = `convert -background transparent -fill \"#fafafa\" -font ManlyMen-BB-Regular -size 750x400 -gravity center caption:'TBT:\n$bookTitle' img/tmp/title.png`;
 
 	$f = `convert -page +0+0 img/tmp/cover.png -page +125+525 img/tmp/title.png -layers flatten img/tmp/pages/cover.png`;
 
@@ -894,23 +962,23 @@ sub makeFrontCover {
 
 sub makeToc {
 	
-	my @chaps = @_;
-	my $c = `convert -size 1000x1600 xc:white -fill "#222222" -font ManlyMen-BB-Regular -pointsize 80 -gravity north -annotate +0+200 'CONTENTS' toc.png`;
+	
+	my $c = `convert -size 1000x1600 xc:white -fill "#222222" -font ManlyMen-BB-Regular -pointsize 80 -gravity north -annotate +0+200 'CONTENTS' img/tmp/toc.png`;
 
- 	# placeholder for practice, iterate for numbers
- 	# eventually should get from %chapterInfo
-
-	my $pg = 1;
 
 	$dots = '.' x 50;
 	my $offset = 0;
 
-	foreach (@chaps){
+	foreach (sort {$a <=> $b} keys %chapterInfo){
+
+		my $chtitle = $chapterInfo{$_}->{title};
+		my $pg = $chapterInfo{$_}->{pn};
+
 		$offset += 1;
 		my $liney = 320 + ($offset * 50);
-		$pg += 25;
+	
 
-		$c = `convert toc.png -fill "#222" -font ManlyMen-BB-Regular -pointsize 44 -gravity northeast -annotate +180+$liney '.$dots$pg' -gravity northwest -undercolor white -annotate +180+$liney '$_ ' toc.png`;
+		$c = `convert img/tmp/toc.png -fill "#222" -font ManlyMen-BB-Regular -pointsize 44 -gravity northeast -annotate +180+$liney '.$dots$pg' -gravity northwest -undercolor white -annotate +180+$liney '$_ ' img/tmp/pages/toc.png`;
 	}
 } 
 
@@ -922,7 +990,7 @@ sub makeAboutPage {
 
 	print "time = $time,\t End: $endTime, Start: $startTime\n";
 	@lines = (
-		"This book, $bookTitle, is a project completed for the 2014 running of NaNoGenMo (National Novel Generation Month) where, instead of writing a novel as in NaNoWriMo, participants write code that produces a 50,000 word novel. You can learn more about NaNoGenMo at https://github.com/dariusk/NaNoGenMo-2014.\n\n",
+		"This book, TBT: $bookTitle, is a project completed for the 2014 running of NaNoGenMo (National Novel Generation Month) where, instead of writing a novel as in NaNoWriMo, participants write code that produces a 50,000 word novel. You can learn more about NaNoGenMo at https://github.com/dariusk/NaNoGenMo-2014.\n\n",
 		"The book you\'re reading is the output of a Perl program that began running at $startTime and finished a little after $endTime.\n\n",
 		"I decided to make a graphic novel, choosing 250 pages as the target length.\n\n",
 		"The resulting pages will vary in clarity and affect, but I think when it works, $bookTitle actually has the feel of a graphic memoir.\n\n",
@@ -941,5 +1009,52 @@ sub makeAboutPage {
 	my $a = `convert -size 1000x1600 xc:white img/tmp/pages/about.png`;
 
 	my $a = `convert -page +0+0 img/tmp/pages/about.png -page +175+320 img/tmp/abouttxt.png -layers flatten img/tmp/pages/about.png`;
+
+}
+
+sub makeBackCover {
+
+
+	# the end
+	$bc = `convert -size 1000x1600 xc:white -font DigitalStrip-2.0-BB-Regular -pointsize 120 -gravity center -annotate +0+350 'THE END' img/tmp/pages/end.png`;
+
+	# back cover (much like front cover)
+
+
+
+
+
+	my @used = shuffle glob "img/tmp/used/*.png";
+
+
+	
+
+
+	$f = `convert -size 1000x1600 xc:black img/tmp/pages/backCover.png`;
+
+	for (my $r = 0; $r <= 8; $r++){
+		$yoff = ($r * 200) - 100;
+
+		for (my $c = 0; $c <= 5; $c++){
+			$xoff = ($c * 200) - 100;
+			
+			unless($blanks{"$c,$r"} == 1){
+
+				my $fill = shift @used;
+
+
+				
+
+				$f = `convert $fill -colorspace gray img/tmp/fill.png`;
+				$fill = "img/tmp/fill.png";
+				
+				drawRect("img/tmp/pages/backCover.png", $fill, 190, 190, $xoff, $yoff);
+			
+			}
+			
+		}
+	}
+
+	
 
 }
