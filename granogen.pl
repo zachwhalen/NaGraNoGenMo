@@ -22,7 +22,11 @@ use JSON::Parse qw(parse_json json_file_to_perl);
 use Date::Parse;
 use List::MoreUtils qw(uniq);
 use List::Util qw(shuffle);
-use POSIX;
+
+
+makeFrontCover();
+
+exit;
 
 # some global variables
 my (%chapterInfo, @chapters, @chaps, $bookTitle, $pageDate);
@@ -126,7 +130,7 @@ for ($ch = 1; $ch <= 2; $ch++){ #chapter counter
 	}
 }
 
-# Now that it's assembled, figure out the chapter titles
+# Now that the pages are generated, figure out the chapter titles
 
 foreach (sort {$a <=> $b} keys %chapters){
 	print "Chapter $_ is called $chapters{$_}\n";
@@ -149,6 +153,8 @@ foreach (sort {$a <=> $b} keys %chapterInfo){
 }
 
 # make front matter
+
+
 
 # assemble
 
@@ -610,9 +616,6 @@ sub makeRegularPage {
 
 	# make a regular page
 	# (should already have $pn from context)
-
-	makeAltLayoutPage();
-	return;
 	
 	getVideo();
 	
@@ -777,17 +780,6 @@ sub makeAltLayoutPage {
 	cleanUp();
 }
 
-sub makeFrontMatter {
-	# cover
-	# blank
-	# title page
-	# info page
-	# contents 
-	# blank 
-
-
-}
-
 sub addPageNumber {
 
 	unless (defined $pn) { $pn = @_[0]; }
@@ -843,25 +835,24 @@ sub makeTitlePage {
 
 sub makeFrontCover {
 
-	# eventually, I'll keep a directory of images that i've used in panels
-	# for now, just make blank rectangles to get the math right
-	# should probably also give drawRect a fallback if missing fill.png
 
-	#my ($canvas, $fill, $width, $height, $xoffset, $yoffset) = @_;
 
-	@blnk = (
+	my @used = shuffle glob "img/tmp/used/*.png";
+
+
+	my @blnk = (
 		'1,3', '2,3', '3,3', '4,3',
 		'1,4', '2,4', '3,4', '4,4',
 		'1,5', '2,5', '3,5', '4,5'
 		);
 
-	%blanks;
+	my %blanks;
 	foreach(@blnk){
 		$blanks{"$_"} = 1;
 	}
 
 
-	$f = `convert -size 1000x1600 xc:"#1a1a1a" cover.png`;
+	$f = `convert -size 1000x1600 xc:black img/tmp/cover.png`;
 
 	for (my $r = 0; $r <= 8; $r++){
 		$yoff = ($r * 200) - 100;
@@ -870,18 +861,27 @@ sub makeFrontCover {
 			$xoff = ($c * 200) - 100;
 			
 			unless($blanks{"$c,$r"} == 1){
-				drawRect("cover.png", "fill.png", 190, 190, $xoff, $yoff);
+
+				my $fill = shift @used;
+
+
+				unless(int(rand(12)) < 3 ){
+
+					$f = `convert $fill -colorspace gray img/tmp/fill.png`;
+					$fill = "img/tmp/fill.png";
+				}
+				drawRect("img/tmp/cover.png", $fill, 190, 190, $xoff, $yoff);
 			
 			}
 			
 		}
 	}
 
-	# draw the actual title
+	# draw the actual title ## What is the title??
 	#$f = `convert -size 1000x1600 xc:blue over.png`;
-	$f = `convert -background "#1a1a1a" -fill "#fafafa" -font ManlyMen-BB-Regular -size 750x400 -gravity center caption:'This is the title' title.png`;
+	$f = `convert -background transparent -fill \"#fafafa\" -font ManlyMen-BB-Regular -size 750x400 -gravity center caption:'This is the title' img/tmp/title.png`;
 
-	$f = `convert -page +0+0 cover.png -page +125+525 title.png -layers flatten cover.png`;
+	$f = `convert -page +0+0 img/tmp/cover.png -page +125+525 img/tmp/title.png -layers flatten img/tmp/pages/cover.png`;
 
 }
 
