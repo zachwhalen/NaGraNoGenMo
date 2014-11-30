@@ -5,13 +5,13 @@
 # 
 #  	X	randomize offsets for the fill images (I think I got it; hard to test for though)
 #  		make some alternate panels 
-#  		make alternate layouts 
+#  	X	make alternate layouts 
 #  		an about page 
 #  		assembling the pages 
 #		- pdf
 #		- cbr
 #		- reveal.js
-#	X	finish title page
+#	X	finish title page layout
 #	X	key the text loaded to the videodownloaded's creation date 
 #	X	keep used fill images for collaging onto the cover
 
@@ -22,6 +22,7 @@ use JSON::Parse qw(parse_json json_file_to_perl);
 use Date::Parse;
 use List::MoreUtils qw(uniq);
 use List::Util qw(shuffle);
+use POSIX;
 
 # some global variables
 my (%chapterInfo, @chapters, @chaps, $bookTitle, $pageDate);
@@ -186,75 +187,6 @@ sub themeChapters {
 	}
 	return @chaps;
 }
-
-sub getLegs {
-
-	# later, get this as a parameter
-	$string = str2time("2014-10-20");
-
-	my @tweets;
-	my @legs;
-
-	%params = (
-		'q' => '%23tbt+when',
-		'apikey' => '09C43A9B270A470B8EB8F2946A9369F3', # I don't know how long this one will work, but should be able to switch out later if need
-		'type' => 'tweet',
-		'offset' => '0',
-		'perpage' => '100',
-		'sort' => 'date',
-		'offset' => int(rand(50)) * 10,
-		'maxtime' => $string
-
-	);
-
-	$url = 'http://otter.topsy.com/search.js?';
-
-	$nurl = 'http://otter.topsy.com/search.js?q=%23tbt+"remember+when"\&type=tweet\&offset=0\&perpage=10\&maxtime=1391288415\&apikey=09C43A9B270A470B8EB8F2946A9369F3';
-
-	foreach (keys %params){
-		$url .= $_ . "=" . $params{$_} . '\&';
-	}
-
-	$result = `curl $url`;
-	$data = parse_json($result);
-
-	#print $result;
-	
-	foreach (@{$data->{response}->{list}}){
-		$twt = $_->{title};
-
-		
-		# Some filters:
-
-		$twt =~ s/#.+?(\s|$)/it /ig; # replace hashtags with "it"
-		$twt =~ s/http.+?(\s|$)//ig; # remove links
-		$twt =~ s/\@.+?(\s|$)/you /ig; # replace mentions with "you"
-
-		push(@tweets, $twt);
-		
-	}
-
-	print "Tweets: " . scalar(@tweets) . "\n";
-
-	if (scalar(@tweets) == 0){
-		print "Result: $result";
-	}
-
-	foreach (@tweets){
-		if (/when (.+?)[\?\!\.\;\,\:\&]/ig){
-
-			push (@legs, $1);
-				
-		}
-	}
-
-	@goodlegs = uniq @legs;
-
-	print "Legs: " . scalar(@goodlegs) . "\n";
-	return @goodlegs;
-}
-
-
 
 sub query {
 	my $pn = @_[0];
@@ -474,7 +406,12 @@ sub makeText {
 		"%s, which made us realize %s. ",
 		"Finally, %s. ",
 		"Even though %s, %s. ",
-		"%s -- $s. "
+		"%s -- $s. ",
+		"Back then, %s. ",
+		"%s, and then %s. ",
+		"Meanwhile, %s. ",
+		"%s, and %s at last. ",
+		"%s, %s and finally %s. "
 	);
 
 	$text = '';
@@ -564,8 +501,8 @@ sub getLegs {
 	}
 
 	foreach (@tweets){
-		if (/when\s.+?(.+?)[\?\!\.\;\,\:\&\-]$/ig){
-
+		if (/when\s+?(.+?)([\?\!\.\;\,\:\&\-\"]|$)/ig){
+			$_ =~ s/[\?\!\.\;\,\:\&\-\"]//ig;
 			push (@legs, $1);
 				
 		}
@@ -674,6 +611,8 @@ sub makeRegularPage {
 	# make a regular page
 	# (should already have $pn from context)
 
+	makeAltLayoutPage();
+	return;
 	
 	getVideo();
 	
@@ -786,10 +725,56 @@ sub makeChapterTitlePage {
 
 sub makeAltLayoutPage {
 	# (should already have $pn from context)
-	makeRegularPage(); # for now
 
-
+	# Originally I wanted more options, but for now, since regular pages are 3 rows, alt pages can be 2 or 1 row
 	
+
+	getVideo(2);
+	
+
+	print "Making altlayout page $pn with pageDate $pageDate ...\n";
+
+	# generate content area
+
+	system("convert -size 1000x1600 xc:white img/tmp/layout.png");
+
+
+	# how many rows?
+	my $rows = int(rand(2)) + 1;
+
+	for ($row = 0; $row < $rows; $row++){
+
+		my $rowheight = int(1320 / $rows);
+
+		my $yoff = $row * $rowheight  + $row * 15;
+
+		
+		my $panes = int(rand(3)) + 1;
+		if ($rows == 1 & $panes == 1){
+			$panes += int(rand(2)) + 1;
+		}
+		$width = (1000 - 200) / ($panes);
+
+
+		for ($p = 0; $p < $panes; $p++){
+
+			# draw a rectangle (move into panel sub later)
+			# assume full width area is 1000
+			# with 100px margin, panels are 	
+
+			$txt = makeText();
+			$frame = getFrame();
+			
+			drawPanel("img/tmp/layout.png", $frame, $txt, $width - 10, $rowheight, $width * $p + 100, $yoff + 80);
+
+		 	# destroy it (later)
+		}
+
+	}
+
+	addPageNumber($pn);
+	system ("mv img/tmp/layout.png img/tmp/pages/page-$pn.png");
+	cleanUp();
 }
 
 sub makeFrontMatter {
