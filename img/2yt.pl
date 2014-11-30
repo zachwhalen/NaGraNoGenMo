@@ -3,14 +3,14 @@
 # use Date::Parse;
 use JSON::Parse qw(parse_json json_file_to_perl);
 use Date::Parse;
+use Date::Format;
 use List::MoreUtils qw(uniq);
 use List::Util qw(shuffle);
+use DateTime;
 
-my @used = shuffle glob "tmp/used/*.png";
+$start = localtime();
 
-$frame = shift(@used);
 
-print $frame;
 exit;
 
 

@@ -15,18 +15,14 @@
 #	X	key the text loaded to the videodownloaded's creation date 
 #	X	keep used fill images for collaging onto the cover
 
-
-
+my $start = time;
 
 use JSON::Parse qw(parse_json json_file_to_perl);
 use Date::Parse;
 use List::MoreUtils qw(uniq);
 use List::Util qw(shuffle);
+use Date::Format;
 
-
-makeFrontCover();
-
-exit;
 
 # some global variables
 my (%chapterInfo, @chapters, @chaps, $bookTitle, $pageDate);
@@ -152,7 +148,18 @@ foreach (sort {$a <=> $b} keys %chapterInfo){
 	makeChapterTitlePage(@info);
 }
 
+
+# figure out the booktitle and set to #bookTitle
+
 # make front matter
+makeFrontCover();
+
+makeAboutPage();
+
+makeTitlePage();
+
+makeToc();
+
 
 
 
@@ -907,3 +914,32 @@ sub makeToc {
 	}
 } 
 
+sub makeAboutPage {
+
+	
+	$endTime = time2str("%I:%M", time, "EST");
+	$startTime = time2str("%I:%M %P %Z, %A, %B %d", $start, "EST");
+
+	print "time = $time,\t End: $endTime, Start: $startTime\n";
+	@lines = (
+		"This book, $bookTitle, is a project completed for the 2014 running of NaNoGenMo (National Novel Generation Month) where, instead of writing a novel as in NaNoWriMo, participants write code that produces a 50,000 word novel. You can learn more about NaNoGenMo at https://github.com/dariusk/NaNoGenMo-2014.\n\n",
+		"The book you\'re reading is the output of a Perl program that began running at $startTime and finished a little after $endTime.\n\n",
+		"I decided to make a graphic novel, choosing 250 pages as the target length.\n\n",
+		"The resulting pages will vary in clarity and affect, but I think when it works, $bookTitle actually has the feel of a graphic memoir.\n\n",
+		"The images are appropriated from Youtube videos that users have uploaded with simply a default file name instead of a descriptive title. I assign them to pages according to a schema such that, for example, page 36 might include images from a video titled IMG_0036.MOV or GOPR0036.MP4.\n\n",
+		"The text is appropriated from Tweets that include the hashtag #TBT.\n\n",
+		"For more on this novel and to view its source code, visit https://github.com/zachwhalen/NaGraNoGenMo.\n\n",
+		"~ ZW / \@zachwhalen / www.zachwhalen.net ~ "
+
+
+	);
+
+	my $text = join("", @lines);
+
+	my $a = `convert -fill \"#222\" -font ManlyMen-BB-Regular -pointsize 24  -gravity center -size 650x800 caption:\"$text\" img/tmp/abouttxt.png`;
+
+	my $a = `convert -size 1000x1600 xc:white img/tmp/pages/about.png`;
+
+	my $a = `convert -page +0+0 img/tmp/pages/about.png -page +175+320 img/tmp/abouttxt.png -layers flatten img/tmp/pages/about.png`;
+
+}
