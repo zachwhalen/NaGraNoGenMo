@@ -4,13 +4,16 @@
 #	TODO ################################################
 # 
 #  	X	randomize offsets for the fill images (I think I got it; hard to test for though)
-#  		make alternate panels 
+#  		make some alternate panels 
 #  		make alternate layouts 
-#  		about page 
+#  		an about page 
 #  		assembling the pages 
+#		- pdf
+#		- cbr
+#		- reveal.js
 #	X	finish title page
-#		key the text loaded to the videodownloaded date 
-#	
+#	X	key the text loaded to the videodownloaded's creation date 
+#	X	keep used fill images for collaging onto the cover
 
 
 
@@ -20,18 +23,8 @@ use Date::Parse;
 use List::MoreUtils qw(uniq);
 use List::Util qw(shuffle);
 
-$pn = 37;
-
-$pageDate = str2time("20140520");
-print "pagedate: ".  $pageDate . "\n";
-getVideo(1);
-
-print "pagedate: " . $pageDate . "\n";
-
-exit;
-
 # some global variables
-my (%chapterInfo, @chapters, @chaps, $bookTitle);
+my (%chapterInfo, @chapters, @chaps, $bookTitle, $pageDate);
 
 # for testing
 my $verbose = 1;
@@ -436,7 +429,7 @@ sub drawPanel  {
 			print "Actually the text is to big so get rid of the image\n";
 			$textgeo = $maxIntWidth . "x" . $maxIntHeight;
 			# just make the text into a panel
-			$txtImg = `convert -background '#ffffff' -fill \"#555555\" -font DigitalStrip-2.0-BB-Regular -size $textgeo caption:'$text' -bordercolor '#ffffff' -border 5x5 img/tmp/text.png`;
+			$txtImg = `convert -background '#ffffff' -fill \"#555555\" -font DigitalStrip-2.0-BB-Regular -gravity center -size $textgeo caption:'$text' -bordercolor '#ffffff' -border 5x5 img/tmp/text.png`;
 			$placeText = `convert $canvas -page +$xoffset+$yoffset img/tmp/text.png -layers flatten $canvas`;
 			
 		}
@@ -508,13 +501,17 @@ sub getFrame {
 	my @frames = glob "img/tmp/frames/*.png";
 	$frame = $frames[int(rand($#frames))];
 
+	my $f = `cp $frame img/tmp/used/`;
+
 	return $frame;
 }
 
 sub getLegs {
 
 	# later, get this as a parameter
-	$string = str2time("2014-05-20");
+	$string = $pageDate;
+
+	print "Getting text from $pageDate\n";
 
 	my @tweets;
 	my @legs;
@@ -526,14 +523,16 @@ sub getLegs {
 		'offset' => '0',
 		'perpage' => '100',
 		'sort' => 'date',
-		'offset' => int(rand(50)) * 10,
 		'maxtime' => $string
+
+		#'offset' => int(rand(50)) * 10,
+		
 
 	);
 
 	$url = 'http://otter.topsy.com/search.js?';
 
-	$nurl = 'http://otter.topsy.com/search.js?q=%23tbt+"remember+when"\&type=tweet\&offset=0\&perpage=10\&maxtime=1391288415\&apikey=09C43A9B270A470B8EB8F2946A9369F3';
+	#$nurl = 'http://otter.topsy.com/search.js?q=%23tbt+"remember+when"\&type=tweet\&offset=0\&perpage=10\&maxtime=1391288415\&apikey=09C43A9B270A470B8EB8F2946A9369F3';
 
 	foreach (keys %params){
 		$url .= $_ . "=" . $params{$_} . '\&';
@@ -565,7 +564,7 @@ sub getLegs {
 	}
 
 	foreach (@tweets){
-		if (/when (.+?)[\?\!\.\;\,\:\&]/ig){
+		if (/when\s.+?(.+?)[\?\!\.\;\,\:\&\-]$/ig){
 
 			push (@legs, $1);
 				
@@ -586,9 +585,6 @@ sub getVideo {
 		# how many source vids? (up to 3)
 		$srcs = int(rand(3)) + 1;
 	}
-
-	#tmp
-	$pn = 67;
 
 	@kept = ();
 
@@ -636,26 +632,40 @@ sub getVideo {
 	foreach (@kept){
 		# download into tmp/mov folder
 
-		system("youtube-dl --write-info-json https://www.youtube.com/watch?v=$_ -o \"img/tmp/mov/\%\(id\)s.\%\(ext\)s\"");
+		system("youtube-dl https://www.youtube.com/watch?v=$_ -o \"img/tmp/mov/\%\(id\)s.\%\(ext\)s\"");
 		
-		$extract = `avconv -i img/tmp/mov/$_.mp4 -r 1 img/tmp/frames/$_-%05d.png`;
+		# apparently avconv sends its output only to stderr for some reason, so 2>&1 redirects stderr back to stdout
+		$extract = `avconv -i img/tmp/mov/$_.mp4 -r 1 img/tmp/frames/$_-%05d.png 2>&1`;
 
-		if ($extract =~ /creation_time\s+?:\s+(\d{4}-\d{2}-\d{2})/){
-			push(@videoDates, str2time($1));
+		my @extracts = split("\n", $extract);
+		foreach (@extracts){
+			if (/creation_time\s+?:\s+(\d{4}-\d{2}-\d{2}\s+?\d{2}:\d{2}:\d{2})/m){
+				print "found a creation date. Maybe? $1\n";
+				push(@videoDates, str2time($1));
+			}	
 		}
+	
 
 		unlink("img/tmp/mov/$_.mp4") or die "Couldn't unlink mp4 : $!\n\n";
+
+		
 
 	}
 
 	# set the operative timestamp for text
 
-	$pageDate = str2time("2014-11-30");
+	
 
 	@videoDates = sort {$a <=> $b} @videoDates;
+	print "Candidate: $videoDates[0]\n";
 	if ($videoDates[0] > 1356998400){
 		$pageDate = $videoDates[0];
+	}else{
+		print "No in-range dates. Randomly picking a date.";
+		$pageDate = int(rand(str2time("2014-11-20") - 1356998400)) + 1356998400;
 	}
+
+
 
 }
 
@@ -668,6 +678,7 @@ sub makeRegularPage {
 	getVideo();
 	
 
+	print "Making regular page $pn with pageDate $pageDate ...\n";
 
 	# generate content area
 
@@ -712,6 +723,9 @@ sub makeChapterEndPage {
 	# this is a full-sized splash page
 
 	getVideo(1);
+
+
+	print "Making endpage page $pn with pageDate $pageDate ...\n";
 
 	$frame = getFrame();
 	# also move a copy of this image to the chapter cover image folder
@@ -773,6 +787,9 @@ sub makeChapterTitlePage {
 sub makeAltLayoutPage {
 	# (should already have $pn from context)
 	makeRegularPage(); # for now
+
+
+	
 }
 
 sub makeFrontMatter {
@@ -807,6 +824,11 @@ sub cleanUp {
 	foreach (@mov){
 		unlink($_);
 	}
+
+	# my @used = glob "img/tmp/used/*";
+	# foreach (@used){
+	# 	unlink($_);
+	# }
 
 }
 

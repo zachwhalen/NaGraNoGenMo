@@ -1,5 +1,12 @@
 #!/usr/bin/local/perl
 use JSON::Parse 'parse_json';
+use Date::Parse;
+
+my $stamp = str2time("2009-12-27 09:15:27");
+print $stamp . "\n";
+
+exit;
+
 
 
 $yt = `youtube-dl --write-info-json wOfmwkjczY8`;
