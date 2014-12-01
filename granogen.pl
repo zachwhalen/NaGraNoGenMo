@@ -17,6 +17,7 @@
 
 
 
+
 my $start = time;
 
 use JSON::Parse qw(parse_json json_file_to_perl);
@@ -24,10 +25,10 @@ use Date::Parse;
 use List::MoreUtils qw(uniq);
 use List::Util qw(shuffle);
 use Date::Format;
-
+use Data::Dumper;
 
 # some global variables
-my (%chapterInfo, @chapters, @chaps, $bookTitle, $pageDate);
+my (%chapterInfo, @chapters, @chaps, $bookTitle, $pageDate, %usedText);
 
 # for testing
 my $verbose = 1;
@@ -89,6 +90,10 @@ for ($ch = 1; $ch <= 3; $ch++){ #chapter counter
 			print "$pn: alt layout\n" if $verbose == 1;
 			makeAltLayoutPage();
 
+			open $write, ">>dump.txt";
+			print $write Dumper(%usedText);
+			close $write;
+
 
 		}elsif($chpn == 6){ # easier to make this an even number, like 24
 			# end on a full page panel
@@ -115,6 +120,9 @@ for ($ch = 1; $ch <= 3; $ch++){ #chapter counter
 
 			makeRegularPage();
 
+			open $write, ">>dump.txt";
+			print $write Dumper(%usedText);
+			close $write;
 			
 			if (length($chapters{$ch}) == 0){
 				print "I should look for a new title.\n";
@@ -507,9 +515,13 @@ sub makeText {
 	for ($l = 0; $l < $length; $l++){
 
 		$template = $templates[int(rand($#templates))];
-		$leg = $legs[int(rand($#legs))];
+		
+		my @use = shuffle @legs;
 
-		$text .= ucfirst ( sprintf($template, shuffle @legs));
+		$usedText{"$use[0]"} = 'y';
+		$usedText{"$use[1]"} = 'y';
+
+		$text .= ucfirst ( sprintf($template, @use));
 
 		$text =~ s/\s(\.|\,|\;|\:)/$1/ig;
 		
@@ -536,6 +548,7 @@ sub getLegs {
 	# later, get this as a parameter
 	$string = $pageDate;
 
+#	$string = str2time("2013-11-30");
 	print "Getting text from $pageDate\n";
 
 	my @tweets;
@@ -591,9 +604,12 @@ sub getLegs {
 	foreach (@tweets){
 		if (/when\s+?(.+?)([\?\!\.\;\,\:\&\-\"]|$)/ig){
 
-			$leg = $1;
+			my $leg = $1;
 			$leg =~ s/[^\w\s\d]//ig;
-			push (@legs, $leg);
+
+			unless($usedText{"$leg"} eq 'y'){
+				push (@legs, $leg);
+			}		
 				
 		}
 	}
