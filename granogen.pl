@@ -37,15 +37,14 @@ my $verbose = 1;
 my %chapters = (
 	'1' => '',
 	'2' => '',
-	'3' => ''
-	# ,
-	# '4' => '',
-	# '5' => '',
-	# '6' => '',
-	# '7' => '',
-	# '8' => '',
-	# '9' => '',
-	# '10' => ''
+	'3' => '',
+	'4' => '',
+	'5' => '',
+	'6' => '',
+	'7' => '',
+	'8' => '',
+	'9' => '',
+	'10' => ''
 );
 
 # Plus some front matter, added after the fact based on images & text collected during generation
@@ -55,14 +54,14 @@ my $pn = 0; # overall page number incrementer
 
 # make the pages
 
-for ($ch = 1; $ch <= 3; $ch++){ #chapter counter
+for ($ch = 1; $ch <= 10; $ch++){ #chapter counter
 
 	my $chpTitleN;
 	my $chpCoverImg;
 
 	$chapterInfo{$ch} = {'pn' => '', 'title' => '', 'img' => ''};
 
-	for ($chpn = 1; $chpn <= 6; $chpn++){ # the page within the chapter, eventually, 25
+	for ($chpn = 1; $chpn <= 25; $chpn++){ # the page within the chapter, eventually, 25
 		$pn += 1; # increment the actual page number
 
 		# some chapter-page positions have special roles
@@ -95,7 +94,7 @@ for ($ch = 1; $ch <= 3; $ch++){ #chapter counter
 			close $write;
 
 
-		}elsif($chpn == 6){ # easier to make this an even number, like 24
+		}elsif($chpn == 24){ # easier to make this an even number, like 24
 			# end on a full page panel
  			if ($chpn % 2 == 1){ 
  				# generate the splash page
