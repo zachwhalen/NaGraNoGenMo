@@ -36,14 +36,15 @@ my $verbose = 1;
 my %chapters = (
 	'1' => '',
 	'2' => '',
-	'3' => '',
-	'4' => '',
-	'5' => '',
-	'6' => '',
-	'7' => '',
-	'8' => '',
-	'9' => '',
-	'10' => ''
+	'3' => ''
+	# ,
+	# '4' => '',
+	# '5' => '',
+	# '6' => '',
+	# '7' => '',
+	# '8' => '',
+	# '9' => '',
+	# '10' => ''
 );
 
 # Plus some front matter, added after the fact based on images & text collected during generation
@@ -53,7 +54,7 @@ my $pn = 0; # overall page number incrementer
 
 # make the pages
 
-for ($ch = 1; $ch <= 10; $ch++){ #chapter counter
+for ($ch = 1; $ch <= 3; $ch++){ #chapter counter
 
 	my $chpTitleN;
 	my $chpCoverImg;
@@ -138,6 +139,10 @@ foreach (sort {$a <=> $b} keys %chapters){
 
 @chaptitles = themeChapters(@chaps);
 
+# figure out the booktitle and set to $bookTitle
+$bookTitle = "$chaps[0], $chaps[1] and $chaps[2]";
+
+
 for (my $c = 1; $c <= $#chaptitles + 1; $c++){
 	$chapterInfo{$c}->{title} = $chaptitles[$c-1];
 }
@@ -152,8 +157,6 @@ foreach (sort {$a <=> $b} keys %chapterInfo){
 }
 
 
-# figure out the booktitle and set to $bookTitle
-$bookTitle = "The $chaps[0], The $chaps[4] and the $chaps[9]";
 
 
 
@@ -202,7 +205,7 @@ print "Making a CBR...\n";
 system("mogrify -format jpg -quality 80 img/tmp/pages/*.png");
 @jpgfront = map {"img/tmp/pages/" . $_ . ".jpg"} @frontMatter;
 @jpgpages = glob "img/tmp/pages/page-*.jpg";
-@jpgback =  map {"img/tmp/pages/" . $_ . ".pdf"} @backMatter;
+@jpgback =  map {"img/tmp/pages/" . $_ . ".jpg"} @backMatter;
 
 my $cbpn = 0;
 
@@ -228,12 +231,18 @@ foreach(@jpgback){
 	$cbpn += 1;
 }
 
-$cbrpages = join(" ", @jpgfront) . " " . join(" ", @jpgpages) . " " . join(" ", @jpgback);
+#$cbrpages = join(" ", @jpgfront) . " " . join(" ", @jpgpages) . " " . join(" ", @jpgback);
 
+@cbrpages = glob "img/tmp/pages/*.jpg";
+$cbrs = join (" ", @cbrpages);
 system("rar a output/book.cbr $cbrpages");
 
 
 print "Done!?\n";
+
+
+system("cp output/book.cbr /home/zach/Dropbox/nagro.cbr");
+system("cp output/book.pdf /home/zach/Dropbox/nagro.pdf");
 
 exit;
 
@@ -581,8 +590,10 @@ sub getLegs {
 
 	foreach (@tweets){
 		if (/when\s+?(.+?)([\?\!\.\;\,\:\&\-\"]|$)/ig){
-			$_ =~ s/[\?\!\.\;\,\:\&\-\"]//ig;
-			push (@legs, $1);
+
+			$leg = $1;
+			$leg =~ s/[^\w\s\d]//ig;
+			push (@legs, $leg);
 				
 		}
 	}
@@ -674,11 +685,12 @@ sub getVideo {
 
 	@videoDates = sort {$a <=> $b} @videoDates;
 	print "Candidate: $videoDates[0]\n";
-	if ($videoDates[0] > 1356998400){
+	$oldest = str2time("2012-01-01");
+	if ($videoDates[0] > $oldest){
 		$pageDate = $videoDates[0];
 	}else{
 		print "No in-range dates. Randomly picking a date.";
-		$pageDate = int(rand(str2time("2014-11-20") - 1356998400)) + 1356998400;
+		$pageDate = int(rand(str2time("2014-11-30") - $oldest)) + $oldest;
 	}
 
 
@@ -888,12 +900,12 @@ sub makeTitlePage {
 
 	print "Making the title page.\n";
 
-	$f = `convert -size 1000x1600 xc:white titlePage.png`;
+	$f = `convert -size 1000x1600 xc:white img/tmp/titlePage.png`;
 
-	$f = `convert -fill "#222222" -font ManlyMen-BB-Regular -size 750x400 -gravity center caption:'This is the title' title.png`;
+	$f = `convert -fill "#222222" -font ManlyMen-BB-Regular -size 750x400 -gravity center caption:'TBT:\n$bookTitle' img/tmp/title.png`;
 
 	
-	$f = `convert titlePage.png -fill "#222222" -font ManlyMen-BB-Italic -pointsize 44 -gravity south -annotate +0+500 "'by' Zach Whalen" -pointsize 40 -gravity south -annotate +0+350 "for\\nNaNoGenMo 2014" titlePage.png`;
+	$f = `convert img/tmp/titlePage.png -fill "#222222" -font ManlyMen-BB-Italic -pointsize 44 -gravity south -annotate +0+500 "'by' Zach Whalen" -pointsize 40 -gravity south -annotate +0+350 "for\\nNaNoGenMo 2014" img/tmp/titlePage.png`;
 
 	# add an hr near the bottom
 	$line = "img/sources/line1.png";	
@@ -902,7 +914,7 @@ sub makeTitlePage {
 	system("convert $line -crop 10x$width+0+$seed -rotate 90 -alpha set img/tmp/lineT.png");
 
 
-	$f = `convert -page +0+0 titlePage.png -page +125+525 title.png -page +100+900 img/tmp/lineT.png -layers flatten titlePage.png`;
+	$f = `convert -page +0+0 img/tmp/titlePage.png -page +125+525 img/tmp/title.png -page +100+900 img/tmp/lineT.png -layers flatten img/tmp/pages/titlePage.png`;
 
 
 
@@ -940,7 +952,7 @@ sub makeFrontCover {
 				my $fill = shift @used;
 
 
-				unless(int(rand(12)) < 3 ){
+				unless(int(rand(12)) < 5 ){
 
 					$f = `convert $fill -colorspace gray img/tmp/fill.png`;
 					$fill = "img/tmp/fill.png";
@@ -978,8 +990,10 @@ sub makeToc {
 		my $liney = 320 + ($offset * 50);
 	
 
-		$c = `convert img/tmp/toc.png -fill "#222" -font ManlyMen-BB-Regular -pointsize 44 -gravity northeast -annotate +180+$liney '.$dots$pg' -gravity northwest -undercolor white -annotate +180+$liney '$_ ' img/tmp/pages/toc.png`;
+		$c = `convert img/tmp/toc.png -fill "#222" -font ManlyMen-BB-Regular -pointsize 44 -gravity northeast -annotate +180+$liney '.$dots$pg' -gravity northwest -undercolor white -annotate +180+$liney '$chtitle ' img/tmp/toc.png`;
 	}
+
+	system("mv img/tmp/toc.png img/tmp/pages/toc.png");
 } 
 
 sub makeAboutPage {
@@ -993,7 +1007,7 @@ sub makeAboutPage {
 		"This book, TBT: $bookTitle, is a project completed for the 2014 running of NaNoGenMo (National Novel Generation Month) where, instead of writing a novel as in NaNoWriMo, participants write code that produces a 50,000 word novel. You can learn more about NaNoGenMo at https://github.com/dariusk/NaNoGenMo-2014.\n\n",
 		"The book you\'re reading is the output of a Perl program that began running at $startTime and finished a little after $endTime.\n\n",
 		"I decided to make a graphic novel, choosing 250 pages as the target length.\n\n",
-		"The resulting pages will vary in clarity and affect, but I think when it works, $bookTitle actually has the feel of a graphic memoir.\n\n",
+		"The resulting pages will vary in clarity and effectiveness, but I think when it works, $bookTitle actually has the feel of a graphic memoir.\n\n",
 		"The images are appropriated from Youtube videos that users have uploaded with simply a default file name instead of a descriptive title. I assign them to pages according to a schema such that, for example, page 36 might include images from a video titled IMG_0036.MOV or GOPR0036.MP4.\n\n",
 		"The text is appropriated from Tweets that include the hashtag #TBT.\n\n",
 		"For more on this novel and to view its source code, visit https://github.com/zachwhalen/NaGraNoGenMo.\n\n",
@@ -1004,7 +1018,7 @@ sub makeAboutPage {
 
 	my $text = join("", @lines);
 
-	my $a = `convert -fill \"#222\" -font ManlyMen-BB-Regular -pointsize 24  -gravity center -size 650x800 caption:\"$text\" img/tmp/abouttxt.png`;
+	my $a = `convert -fill \"#222\" -font ManlyMen-BB-Regular -gravity center -size 650x900 caption:\"$text\" img/tmp/abouttxt.png`;
 
 	my $a = `convert -size 1000x1600 xc:white img/tmp/pages/about.png`;
 
